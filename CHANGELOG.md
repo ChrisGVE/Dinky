@@ -7,6 +7,7 @@
 - Resizing with the keyboard leaves a window alone when it shares its container with ten or more others, as after `flatten-workspace-tree` with eleven windows. Before, growing it made it vanish.
 - `join-with left` and `right` in the scrolling layout put a window into the neighbouring column even when it sits side by side with another inside its column. Before, it joined that other window instead.
 - The config rejects negative gaps, accordion padding and border widths, and workspace numbers written as `01` or `+1` in `[workspace-to-display]`. Before, they were accepted, and `01` and `1` silently overrode each other.
+- A `dinky.toml` that is a symlink to a missing file, such as one into a dotfiles checkout not cloned yet, stays a symlink. Before, dinky replaced it with the default config at launch.
 
 ## 0.19
 
