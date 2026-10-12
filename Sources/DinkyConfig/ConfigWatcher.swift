@@ -12,6 +12,8 @@ public final class ConfigWatcher {
     private let queue = DispatchQueue(label: "dinky.config-watcher")
     private var source: DispatchSourceFileSystemObject?
     private var pending: DispatchWorkItem?
+    /// Set by `stop()`, so the poll for a missing file, which can't be cancelled, does not start watching again.
+    private var stopped = false
 
     public init(url: URL, onChange: @escaping (Result<Config, ConfigError>) -> Void) {
         self.url = url
@@ -26,6 +28,7 @@ public final class ConfigWatcher {
 
     public func stop() {
         queue.sync {
+            stopped = true
             source?.cancel()
             source = nil
             pending?.cancel()
@@ -50,7 +53,7 @@ public final class ConfigWatcher {
     }
 
     private func reopenIfMissing() {
-        guard source == nil else { return }
+        guard !stopped, source == nil else { return }
         if FileManager.default.fileExists(atPath: url.path) {
             changed()
         } else {
