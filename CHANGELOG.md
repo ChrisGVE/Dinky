@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### Fixes
+
+- A `layout` command keeps a `fixed` workspace's template when it leaves its shape alone, such as one that changes nothing or turns the overflow accordion vertical. Before, the reserved empty cells disappeared and later windows no longer filled the grid.
+
 ## 0.18
 
 ### Key bindings
