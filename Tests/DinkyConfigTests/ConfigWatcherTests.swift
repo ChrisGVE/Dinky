@@ -27,4 +27,15 @@ struct ConfigWatcherTests {
         try "gap = 4\n".write(to: url, atomically: true, encoding: .utf8)
         #expect(broken.wait(timeout: .now() + 1) == .success, "error reported")
     }
+
+    @Test func `A stopped watcher stays stopped while its file is missing`() throws {
+        let url = FileManager.default.temporaryDirectory.appending(path: "dinky-\(UUID().uuidString).toml")
+        defer { try? FileManager.default.removeItem(at: url) }
+        let reported = DispatchSemaphore(value: 0)
+        let watcher = ConfigWatcher(url: url) { _ in reported.signal() }
+        watcher.stop()
+        try "workspaces = 4\n".write(to: url, atomically: false, encoding: .utf8)
+        // The missing file is polled every 0.5 s, and a reload follows 0.1 s after the file appears.
+        #expect(reported.wait(timeout: .now() + 1.5) == .timedOut)
+    }
 }
