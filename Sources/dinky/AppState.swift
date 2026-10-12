@@ -59,6 +59,8 @@ final class AppState {
         guard coordinator == nil else { return }
         let coordinator = Coordinator(displays: displays, config: config)
         self.coordinator = coordinator
+        // A disable sent before Accessibility was granted had no coordinator to reach.
+        coordinator.enabled = enabled
         coordinator.start()
         // Once the windows are known, so each workspace's windows move with it, and before the hooks, which
         // report workspace numbers.
@@ -76,6 +78,8 @@ final class AppState {
         if on { recovery.resume() }
         enabled = on
         propagateEnabled()
+        // Displays may have come or gone while off, when arranging is skipped.
+        if on, coordinator != nil { numbers.arrange() }
         return on ? "" : recovery.restore()
     }
 

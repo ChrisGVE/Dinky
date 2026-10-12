@@ -20,9 +20,15 @@ final class Coordinator {
         didSet {
             if !enabled { applier.cancel(); animator.cancel(); cancelDrag() }
             if enabled != oldValue { updateBorders() }
-            if enabled, !oldValue { reconcile() }
+            if enabled, !oldValue {
+                enabledSince = Date()
+                reconcile()
+            }
         }
     }
+    /// When tiling last came back on. Windows that first showed while it was off are left where they are, as
+    /// windows open before dinky started are.
+    private(set) var enabledSince = Date.distantPast
 
     let displays: DisplayModel
     private(set) var config: Config
@@ -282,8 +288,10 @@ final class Coordinator {
     /// while it is shown: minimized windows, windows of hidden apps and inactive tabs read as minimized.
     func track(_ window: Window) {
         if placements[window.id] == nil {
-            // AX only lists windows on a Space that is on screen; the rest are classified when theirs is.
-            guard window.isNormal, isVisible(window.spaceID) else { return }
+            // AX only lists windows on a Space that is on screen; the rest are classified when theirs is. Off, new
+            // windows are not classified at all: that runs `[[rules]]` and moves them to the focused display.
+            // Turning tiling back on reconciles, which tracks them then.
+            guard enabled, window.isNormal, isVisible(window.spaceID) else { return }
             // Once, on the first classification attempt, not again on its retries.
             if attempts[window.id] == nil { noteFirstShowing(window) }
             guard let classification = classify(window) else { return }
