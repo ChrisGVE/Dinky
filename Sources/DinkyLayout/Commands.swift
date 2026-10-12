@@ -149,8 +149,12 @@ extension Workspace {
             let smallest = parent.children[index].minimumExtent(along, gap: gaps.inner(along), padding: accordionPadding, minimumSizes)
             let old = parent.ratios[index]
             let smallestOther = parent.ratios.enumerated().filter { $0.offset != index }.map(\.element).min()!
-            let lower = max(Self.minimumRatio, min(Double(smallest / extent), old))
-            let upper = 1 - Self.minimumRatio * (1 - old) / smallestOther
+            // A share may shrink to the larger of `minimumRatio` and its minimum size, and grow until the smallest
+            // sibling, scaled down with the others, reaches `minimumRatio`. Neither bound crosses the current share:
+            // eleven or more siblings, or a container spliced into its parent, sit below the minimum already, and
+            // must not be pushed further below it.
+            let lower = min(old, max(Self.minimumRatio, Double(smallest / extent)))
+            let upper = max(old, 1 - Self.minimumRatio * (1 - old) / smallestOther)
             let new = min(max(old + Double(delta / extent), lower), upper)
             guard abs(new - old) > 1e-9 else { return false }
             let (oldRoot, oldFrame) = (root, tiledLayout().frames[focused])
