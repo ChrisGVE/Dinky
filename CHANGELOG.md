@@ -9,6 +9,7 @@
 - The config rejects negative gaps, accordion padding and border widths, and workspace numbers written as `01` or `+1` in `[workspace-to-display]`. Before, they were accepted, and `01` and `1` silently overrode each other.
 - A `dinky.toml` that is a symlink to a missing file, such as one into a dotfiles checkout not cloned yet, stays a symlink. Before, dinky replaced it with the default config at launch.
 - `exec-and-forget` finds Homebrew's commands on Intel Macs, where Homebrew lives in `/usr/local`. Before, hooks like the `sketchybar` examples failed there when dinky was started from Finder or at login.
+- A frontmost app that stops responding no longer stalls typing everywhere. Before, dinky asked it for its focused window twice a second with no time limit, on the thread that also handles key bindings.
 
 ## 0.19
 
