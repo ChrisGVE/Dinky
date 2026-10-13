@@ -339,7 +339,10 @@ class Fuzzer:
                 v[("j-minimum", int(id))] = f"window {id} has minimum size {size}, nearly the display ({area[2]}x{area[3]})"
         if s["dragging"]:
             v[("k-dragging", s["dragging"])] = f"dinky still thinks window {s['dragging']} is being dragged"
-        out = subprocess.run([self.dinky, "list-workspaces", "--focused"], capture_output=True, text=True).stdout.strip()
+        try:
+            out = subprocess.run([self.dinky, "list-workspaces", "--focused"], capture_output=True, text=True, timeout=10).stdout.strip()
+        except subprocess.TimeoutExpired:
+            out = ""  # hung: the next state() reports the app gone
         d = s["displays"][0]
         if out.isdigit() and d["workspaces"][int(out) - 1] != d["current-space"]:
             v[("f-focused-workspace", 0)] = f"list-workspaces --focused says {out}, the display is on Space {d['current-space']}"
