@@ -4,7 +4,8 @@ import DinkyPrivate
 
 // Restore on disable and quit, and crash recovery. Before dinky tiles a window, its original frame and
 // Space are journaled once and saved to disk, so a crash leaves them behind. Disabling or quitting puts
-// every journaled window back. After a crash, the next launch keeps the entries whose windows still
+// every journaled window back; one it could not put back stays journaled for the next try, unless it is moved
+// by hand meanwhile (see FailedRestores). After a crash, the next launch keeps the entries whose windows still
 // exist with the same owner and offers to restore them. Main thread only.
 final class Recovery {
     struct Entry: Codable {
@@ -30,6 +31,7 @@ final class Recovery {
     /// Restore problems no retry can fix. Every other failed window stays journaled for the next restore.
     private static let closed = "closed"
     private static let spaceGone = "its Space is gone"
+    private static let movedByHand = "moved by hand since the last try, leaving it there"
     /// How long a restore waits for apps to take their frames. A hung app must not hold up quitting for long.
     private static let answerTimeout: TimeInterval = 3
 
@@ -39,6 +41,7 @@ final class Recovery {
     private let launched = Date()
     private var entries: [UInt32: Entry] = [:]
     private var carried: Set<UInt32> = []
+    private var failed = FailedRestores()
     private var model: WindowModel?
     private var recording = false
     private var saveScheduled = false
@@ -57,9 +60,12 @@ final class Recovery {
         resume()
     }
 
-    /// Journals windows from now on. Call before tiling (re)starts.
+    /// Journals windows from now on. Call before tiling (re)starts. A window a restore could not put back and
+    /// that was moved by hand since is journaled again from where it is now.
     func resume() {
         recording = true
+        for id in failed.ids where failed.movedByHand(id, now: position(of: id)) { entries[id] = nil }
+        failed.clear()
         record()
     }
 
@@ -79,12 +85,18 @@ final class Recovery {
                 problems[entry.id] = Self.closed
                 return false
             }
+            let now = position(of: entry.id)
+            // Already in place, possibly on a Space AX cannot reach; or a late answer from an app a try gave up on.
+            if now == WindowPosition(frame: entry.frame, spaceID: entry.spaceID) { return false }
+            if failed.movedByHand(entry.id, now: now) {
+                problems[entry.id] = Self.movedByHand
+                return false
+            }
             guard displays.displays.contains(where: { $0.frame.intersects(entry.frame) }) else {
                 problems[entry.id] = "its display is gone"
                 return false
             }
-            // Already in place, possibly on a Space AX cannot reach.
-            return dinky_window_info(entry.id).frame != entry.frame || dinky_window_space_id(entry.id) != entry.spaceID
+            return true
         }
         // Frames first while windows are on screen, then Spaces, then frames again for windows that
         // came back onto a visible Space: AX only reaches windows on a Space that is on screen.
@@ -98,7 +110,7 @@ final class Recovery {
             }
             problems[entry.id] = "\(outcome), wanted \(entry.frame)"
         }
-        let retry = problems.filter { $0.value != Self.closed && $0.value != Self.spaceGone }
+        let retry = problems.filter { ![Self.closed, Self.spaceGone, Self.movedByHand].contains($0.value) }
         for (id, problem) in problems.sorted(by: { $0.key < $1.key }) {
             fputs("recovery: window \(id): \(problem)\(retry[id] == nil ? "" : ", kept to try again")\n", stderr)
         }
@@ -106,6 +118,8 @@ final class Recovery {
             + (problems.isEmpty ? "" : ", see the log for the rest")
         entries = entries.filter { retry[$0.key] != nil }
         carried.formIntersection(entries.keys)
+        failed.keep(Set(retry.keys))
+        for id in retry.keys { failed.remember(id, at: position(of: id)) }
         save()
         print("recovery: \(summary)")
         fflush(stdout)
@@ -179,6 +193,11 @@ final class Recovery {
     }
 
     // MARK: Restoring
+
+    /// Where the window server has a window now.
+    private func position(of id: UInt32) -> WindowPosition {
+        WindowPosition(frame: dinky_window_info(id).frame, spaceID: dinky_window_space_id(id))
+    }
 
     /// Writes the entries' frames, in the current stacking order so nothing is raised. Waits for the results, up
     /// to `answerTimeout`; an app that has not answered by then has no results, and the other apps still do.
