@@ -147,6 +147,21 @@ struct MasterCommandTests {
         #expect(ws.container(of: 4)?.mode == .tiles)
     }
 
+    @Test func `Layout commands see the stack from every window`() {
+        var ws = master(1)
+        #expect(ws.layoutContainer(of: 1)?.container.mode == .tiles)
+        #expect(ws.layoutContainer(of: 1)?.axis == .vertical, "a stack not open yet")
+        ws.setLayout(.accordion, nil)
+        #expect(ws.layoutContainer(of: 1)?.container.mode == .accordion)
+        ws.insert(2)
+        #expect(ws.layoutContainer(of: 1)?.container.mode == .accordion)
+        #expect(ws.layoutContainer(of: 2)?.container.mode == .accordion)
+        var tiles = Workspace(bounds: rect(0, 0, 1000, 600))
+        tiles.insert(1)
+        #expect(tiles.layoutContainer(of: 1)?.container == tiles.container(of: 1), "elsewhere, the window's own container")
+        #expect(ws.layoutContainer(of: 9) == nil)
+    }
+
     @Test func `An auto-orienting accordion stack still runs top to bottom`() {
         var ws = Workspace(bounds: rect(0, 0, 3000, 600), autoOrientAccordions: true, algorithm: .master(.left))
         for id: WindowID in [1, 2, 3] { ws.insert(id) }

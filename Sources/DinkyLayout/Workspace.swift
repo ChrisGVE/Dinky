@@ -359,6 +359,15 @@ public struct Workspace: Equatable, Sendable {
         root.path(of: id).map { axisOfContainer(at: Array($0.dropLast())) }
     }
 
+    /// The container `layout` commands change for the window, with the axis it runs along now: its parent, or in
+    /// a master layout the stack, as it shows or will open. Nil if the window is not here.
+    public func layoutContainer(of id: WindowID) -> (container: Container, axis: Orientation)? {
+        guard let path = root.path(of: id) else { return nil }
+        guard isMasterTree else { return (root.container(at: Array(path.dropLast())), axisOfContainer(at: Array(path.dropLast()))) }
+        let stack = stackPath.map { root.container(at: $0) } ?? Container(stackOrientation, stackMode)
+        return (stack, stack.axis(in: stackPath.map { rect(at: $0, in: tiledLayout()) } ?? gaps.inset(bounds)))
+    }
+
     /// The axis the container at `path` runs along now, `auto` resolved from the rectangle it is laid out in,
     /// so minimum sizes count as they do on screen.
     func axisOfContainer(at path: [Int]) -> Orientation {

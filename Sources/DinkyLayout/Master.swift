@@ -23,7 +23,7 @@ extension Workspace {
     }
 
     /// The path of the stack, nil while the master is alone or the workspace is empty.
-    private var stackPath: [Int]? { root.children.count == 2 ? [1 - masterIndex] : nil }
+    var stackPath: [Int]? { root.children.count == 2 ? [1 - masterIndex] : nil }
 
     /// Whether the tree has the master layout's shape: nothing, a lone window, or a window and a stack of windows
     /// side by side, the window on the configured side.

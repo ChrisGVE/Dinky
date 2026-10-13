@@ -40,9 +40,10 @@ extension Coordinator {
         flush()
     }
 
-    /// The axis the container holding a tiled window runs along now, `auto` resolved.
-    func containerAxis(of id: WindowID) -> Orientation? {
-        placements[id]?.space.flatMap { workspaces[$0]?.containerAxis(of: id) }
+    /// The container `layout` commands change for a tiled window, and the axis it runs along now: see
+    /// `Workspace.layoutContainer(of:)`.
+    func layoutContainer(of id: WindowID) -> (container: Container, axis: Orientation)? {
+        placements[id]?.space.flatMap { workspaces[$0]?.layoutContainer(of: id) }
     }
 
     /// AeroSpace's name for how a window is laid out: `h_tiles`, `v_tiles`, `h_accordion` or `v_accordion`
