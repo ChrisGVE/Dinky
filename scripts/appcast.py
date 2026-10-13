@@ -62,6 +62,11 @@ item = ET.SubElement(channel, "item")
 ET.SubElement(item, "title").text = version
 ET.SubElement(item, "pubDate").text = email.utils.format_datetime(datetime.datetime.now(datetime.timezone.utc))
 ET.SubElement(item, f"{{{ns}}}minimumSystemVersion").text = info["LSMinimumSystemVersion"]
+# A build without an Intel slice tells Sparkle to skip Intel Macs, which otherwise would install an app they can't run.
+archs = subprocess.run(["lipo", "-archs", "build/dinky.app/Contents/MacOS/dinky"],
+                       check=True, capture_output=True, text=True).stdout.split()
+if "x86_64" not in archs:
+    ET.SubElement(item, f"{{{ns}}}hardwareRequirements").text = "arm64"
 notes = release_notes(version)
 if notes:
     ET.SubElement(item, "description").text = notes

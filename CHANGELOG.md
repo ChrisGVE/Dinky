@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### Fixes
+
+- Intel Macs are no longer offered dinky releases they can't run. The update feed and the Homebrew cask now say a release needs Apple silicon, so a dinky built from source on an Intel Mac doesn't offer to update itself to one, and `brew install` stops with a clear message. Before, both went ahead and left an app that doesn't start.
+
 ## 0.18
 
 ### Key bindings
