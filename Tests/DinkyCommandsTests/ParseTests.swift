@@ -187,6 +187,12 @@ struct QuotingTests {
         #expect(Command.line(["workspace", "3"]) == "workspace 3")
     }
 
+    @Test(arguments: [#"it's "x""#, #"a"b'c"#, #"'""#, #"''"""#, #"say "hi""#])
+    func `Line round-trips a word with both kinds of quote`(word: String) {
+        let args = ["list-windows", "--format", word, "--workspace", "1"]
+        #expect(Command.words(Command.line(args)) == args)
+    }
+
     @Test func `Exec-and-forget line is passed as written`() {
         #expect(Command.line(["exec-and-forget", "echo 'a b'", "> /tmp/x"]) == "exec-and-forget echo 'a b' > /tmp/x")
     }

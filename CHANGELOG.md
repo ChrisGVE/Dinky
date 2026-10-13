@@ -16,6 +16,7 @@
 - One app that stops responding while windows are being put back no longer spoils the report for the others. Before, every window counted as not restored when any app took longer than 3 seconds.
 - Showing, hiding or moving the Dock, or turning menu bar hiding on or off, fits the tiles to the new free area. Before, they kept the old one until something else changed, overlapping the Dock or leaving a gap.
 - Windows moved since a display was plugged in or out stay where you put them. Before, when arranging the workspaces right after the display change stopped short, a later config reload sent windows back to where they had been before that change.
+- A CLI argument with both `'` and `"` in it, such as a `--format` of `it's "%{app-name}"`, reaches dinky as typed. Before, quotes were lost, and some mixes swallowed the flags after it.
 
 ## 0.19
 

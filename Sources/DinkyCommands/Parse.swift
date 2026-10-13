@@ -130,7 +130,10 @@ extension Command {
         guard args.first != "exec-and-forget" else { return args.joined(separator: " ") }
         return args.map { word in
             guard word.isEmpty || word.contains(where: { $0.isWhitespace || $0 == "'" || $0 == "\"" }) else { return word }
-            return word.contains("'") ? "\"\(word)\"" : "'\(word)'"
+            if !word.contains("'") { return "'\(word)'" }
+            if !word.contains("\"") { return "\"\(word)\"" }
+            // Both kinds: single-quoted runs, each ' written as "'" between them. Adjacent runs make one word.
+            return "'" + word.split(separator: "'", omittingEmptySubsequences: false).joined(separator: "'\"'\"'") + "'"
         }.joined(separator: " ")
     }
 
