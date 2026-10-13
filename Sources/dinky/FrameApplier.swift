@@ -80,10 +80,17 @@ final class FrameApplier {
     /// `completion` runs on a background queue with the readback of every app touched.
     func apply(_ layout: Layout, pids: [WindowID: pid_t], front: WindowID? = nil,
                completion: @escaping ([FrameResult]) -> Void = { _ in }) {
+        apply(layout, pids: pids, front: front, progress: { _ in }, completion: completion)
+    }
+
+    /// As `apply(_:pids:front:completion:)`, and `progress` gets each app's readback as soon as that app is done,
+    /// also on a background queue, so a caller that stops waiting for a hung app still has the others.
+    func apply(_ layout: Layout, pids: [WindowID: pid_t], front: WindowID? = nil,
+               progress: @escaping FrameScheduler.Completion, completion: @escaping ([FrameResult]) -> Void) {
         let jobs = layout.order.compactMap { id in
             pids[id].map { FrameJob(pid: $0, id: id, frame: layout.frames[id]!) }
         }
-        scheduler.submit(jobs) { [unowned self] results in
+        scheduler.submit(jobs, progress: progress) { [unowned self] results in
             rememberAppMinimums(results)
             logUnreadable(results)
             raiseIntoOrder(layout, pids: pids, front: front) { completion(results) }
