@@ -14,6 +14,7 @@
 - Disabling, quitting and `dinky recover` put windows back where they were when dinky launched. Before, the frames recorded as the originals could already be the tiled ones, so restoring left windows tiled.
 - A window that could not be put back, because its display was unplugged or its app did not answer, stays journaled, so the next disable, quit or `dinky recover` tries it again. Before, it was forgotten after the first try.
 - One app that stops responding while windows are being put back no longer spoils the report for the others. Before, every window counted as not restored when any app took longer than 3 seconds.
+- Showing, hiding or moving the Dock, or turning menu bar hiding on or off, fits the tiles to the new free area. Before, they kept the old one until something else changed, overlapping the Dock or leaving a gap.
 
 ## 0.19
 
