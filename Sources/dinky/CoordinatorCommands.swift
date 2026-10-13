@@ -44,9 +44,11 @@ extension Coordinator {
         }
         let new = layout.map { algorithm(WorkspaceSettings(tiling: true, layout: $0)) } ?? tree
         edit(key) {
+            // Focused first: switching to master makes the focused window the master, and this is the window the
+            // command is for, which a rule run for a window that is no longer focused would otherwise miss.
+            $0.focus(id)
             $0.chosenAlgorithm = new == configured ? nil : new
             $0.setAlgorithm(new)
-            $0.focus(id)
         }
         flush()
     }
