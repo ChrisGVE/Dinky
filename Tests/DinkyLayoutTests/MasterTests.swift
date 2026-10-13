@@ -92,6 +92,43 @@ struct MasterLifecycleTests {
         #expect(frames(ws)[1]!.width == 600)
     }
 
+    @Test func `Closing the master hands the focus to the window promoted`() {
+        var ws = master(4)
+        ws.focus(1)
+        ws.remove(1)
+        #expect(ws.focused == 2)
+        #expect(frames(ws)[2] == rect(0, 0, 600, 600))
+        #expect(frames(ws)[4] == rect(600, 300, 400, 300))
+    }
+
+    @Test func `A master on the right keeps its side as windows close`() {
+        var ws = master(3, .right)
+        ws.remove(1)
+        #expect(frames(ws)[2] == rect(400, 0, 600, 600), "the top of the stack takes the master's place")
+        #expect(frames(ws)[3] == rect(0, 0, 400, 600))
+        var emptied = master(2, .right)
+        emptied.remove(2)
+        #expect(frames(emptied)[1] == rect(0, 0, 1000, 600))
+        emptied.insert(3)
+        #expect(frames(emptied)[3] == rect(0, 0, 400, 600), "the stack opens again on the left")
+        var promoted = master(2, .right)
+        promoted.remove(1)
+        #expect(frames(promoted)[2] == rect(0, 0, 1000, 600))
+    }
+
+    @Test func `A tab replacing a window keeps its place in the master layout`() {
+        var ws = master(3)
+        ws.focus(1)
+        ws.replace(1, with: 9)
+        ws.replace(3, with: 8)
+        #expect(ws.masterWindow == 9)
+        #expect(ws.focused == 9)
+        #expect(frames(ws)[9] == rect(0, 0, 600, 600))
+        #expect(frames(ws)[8] == rect(600, 300, 400, 300))
+        ws.insert(10)
+        #expect(ws.windows == [9, 2, 8, 10], "new windows still join the stack")
+    }
+
     @Test func `Every window closing leaves an empty master workspace`() {
         var ws = master(3)
         for id: WindowID in [2, 1, 3] { ws.remove(id) }
@@ -119,6 +156,17 @@ struct MasterCommandTests {
         #expect(changed3)
         #expect(ws.windows == [2, 1, 3])
         #expect(ws.focused == 1)
+    }
+
+    @Test func `Swapping works the same with the master on the right`() {
+        var ws = master(3, .right)
+        ws.focus(3)
+        let changed = ws.swapWithMaster()
+        #expect(changed)
+        #expect(ws.masterWindow == 3)
+        #expect(ws.focused == 3)
+        #expect(frames(ws)[3] == rect(400, 0, 600, 600))
+        #expect(frames(ws)[1] == rect(0, 300, 400, 300))
     }
 
     @Test func `Swapping with nothing stacked does nothing`() {
@@ -214,6 +262,18 @@ struct MasterCommandTests {
         #expect(ws.focused == 3)
     }
 
+    @Test func `Switching from scrolling lays the columns out as master and stack`() {
+        var ws = Workspace(bounds: rect(0, 0, 1000, 600), algorithm: .scrolling)
+        for id: WindowID in [1, 2, 3] { ws.insert(id) }
+        ws.focus(2)
+        ws.setAlgorithm(.master(.left))
+        #expect(ws.windows == [2, 1, 3])
+        #expect(frames(ws)[2] == rect(0, 0, 600, 600))
+        #expect(frames(ws)[1] == rect(600, 0, 400, 300))
+        #expect(frames(ws)[3] == rect(600, 300, 400, 300))
+        #expect(ws.container(of: 1)?.mode == .tiles)
+    }
+
     @Test func `Windows shown as an accordion stack as one`() {
         var ws = Workspace(bounds: rect(0, 0, 1000, 600), algorithm: .dwindle(.accordion))
         for id: WindowID in [1, 2, 3] { ws.insert(id) }
@@ -250,6 +310,19 @@ struct MasterCommandTests {
         #expect(ws.windows == [1, 3, 2], "in the order the broken tree had")
         #expect(frames(ws)[1] == rect(0, 0, 600, 600))
         #expect(frames(ws)[2] == rect(600, 300, 400, 300))
+    }
+
+    @Test func `After a join, new windows open beside the focused one`() {
+        var ws = master(3)
+        ws.focus(3)
+        let joined = ws.join(.left)
+        #expect(joined)
+        #expect(!ws.isMasterTree)
+        ws.insert(4)
+        #expect(ws.container(of: 4) == ws.container(of: 3), "like a fixed template a tree command changed")
+        #expect(frames(ws)[3] == rect(0, 300, 300, 300))
+        #expect(frames(ws)[4] == rect(300, 300, 300, 300))
+        #expect(frames(ws)[2] == rect(600, 0, 400, 600), "the rest stays put")
     }
 }
 
