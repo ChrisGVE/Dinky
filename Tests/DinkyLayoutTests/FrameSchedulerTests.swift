@@ -326,6 +326,12 @@ struct FrameSchedulerTests {
         #expect(scheduler.minimumSizes == [:])
     }
 
+    @Test func `Windows that could not be read back are the unreadable ones`() {
+        let scheduler = FrameScheduler(settle: 0, read: { $0.id == 20 ? nil : $0.frame }, write: { _ in })
+        let results = submitAndWait(scheduler, [job(1, 10, 0), job(2, 20, 100)])
+        #expect(results.unreadable == [20])
+    }
+
     @Test func `Empty submit completes immediately`() {
         let results = submitAndWait(FakeWindows().scheduler(), [])
         #expect(results.isEmpty)

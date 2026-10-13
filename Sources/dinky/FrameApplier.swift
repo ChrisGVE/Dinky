@@ -83,7 +83,8 @@ final class FrameApplier {
 
     /// Write every frame in `layout`, then raise overlapping windows into the layout's order if they are not,
     /// unless that would move focus away from a window other than `front`, the one the layout puts on top.
-    /// `completion` runs on a background queue with the readback of every app touched.
+    /// `completion` runs on a background queue with the readback of every app touched, once written: it does
+    /// not wait for the raises, which queue behind earlier passes' and can block on a hung app for seconds.
     func apply(_ layout: Layout, pids: [WindowID: pid_t], front: WindowID? = nil,
                completion: @escaping ([FrameResult]) -> Void = { _ in }) {
         apply(layout, pids: pids, front: front, progress: { _ in }, completion: completion)
@@ -99,7 +100,11 @@ final class FrameApplier {
         scheduler.submit(jobs, progress: progress) { [unowned self] results in
             rememberAppMinimums(results)
             logUnreadable(results)
-            raiseIntoOrder(layout, pids: pids, front: front) { completion(results) }
+            // Queued before the completion runs, so the next pass's raises still come after these. A window that
+            // could not be read back is not raised: each lookup of it would block the raise queue for a second.
+            let unreadable = results.unreadable
+            raiseIntoOrder(layout, pids: pids.filter { !unreadable.contains($0.key) }, front: front)
+            completion(results)
         }
     }
 
