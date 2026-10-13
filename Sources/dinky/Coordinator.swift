@@ -52,6 +52,8 @@ final class Coordinator {
     var adopting: Set<WindowID> = []
     /// The tiled window being dragged with the mouse, until the button is released. See Drag.swift.
     var dragging: WindowID?
+    /// Its tile when the drag began. A tile that changes during the drag must not make the drop look like a resize.
+    var dragStart: CGRect?
     lazy var placeholders = DragPlaceholders()
     /// Called when the focused window changes.
     var onFocusChange: (() -> Void)?
