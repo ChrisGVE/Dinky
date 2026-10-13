@@ -25,7 +25,7 @@ permalink: /configuration/
 |---|---|---|
 | `start-at-login` | `true` | Register as a login item. |
 | `workspaces` | `5` | Workspaces across all displays, one native Space each. dinky creates and removes Spaces to match. |
-| `default-layout` | `'tiles'` | `'tiles'` (the existing dwindle layout), `'dwindle'`, `'accordion'`, `'fixed'`, or `'scrolling'`. |
+| `default-layout` | `'tiles'` | `'tiles'` (the existing dwindle layout), `'dwindle'`, `'accordion'`, `'fixed'`, `'scrolling'`, or `'master'`. |
 | `default-tiling` | `true` | Set `false` to leave workspaces untiled unless overridden. |
 | `follow-app-activation` | `true` | Cmd-Tab and Dock clicks switch Spaces the fast way. Needs the macOS "switch to a Space with open windows" setting off. |
 | `float-windows-without-fullscreen` | `true` | Float windows that can't go full screen, such as Finder's copy progress, About This Mac and Calculator. Terminals and editors that can hide their title bar still tile. A `layout tiling` rule tiles a window anyway. |
@@ -146,6 +146,37 @@ ctrl-alt-cmd-s = 'layout tiles accordion scrolling'
 | Key | Default | |
 |---|---|---|
 | `column-width` | `0.49` | A new column's width, as a share of the display inside the outer gaps, from `0.1` to `1`. Omarchy's `0.49` fits two columns side by side. |
+
+</div>
+
+## Master
+
+`layout = 'master'` gives one window, the master, a share of the display on one
+side and stacks the others beside it, as Hyprland's master layout does. The
+first window fills the display alone; the second opens the stack and later ones
+join its bottom. When the master closes, the top of the stack takes its place;
+when the stack empties, the master fills the display again.
+
+`move` swaps the focused window with its neighbour, so the master and the stack
+keep their places. `resize width` changes the master's share, `resize height`
+a window's share of the stack, and `balance-sizes` gives the master its `size`
+back and the stack equal shares. A command that changes the shape, such as
+`join-with`, leaves the layout until `flatten-workspace-tree` rebuilds it, as
+with a fixed template.
+
+```toml
+[workspace.2]
+layout = 'master'
+```
+
+## `[master]`
+
+<div class="wide-table" markdown="1">
+
+| Key | Default | |
+|---|---|---|
+| `size` | `0.6` | The master's share of the display inside the outer gaps while windows are stacked beside it, from `0.1` to `0.9`. Hyprland calls it `mfact`. It applies to a stack opened later and to `balance-sizes`. |
+| `orientation` | `'left'` | The side the master takes: `'left'` or `'right'`. The stack goes on the other. |
 
 </div>
 
