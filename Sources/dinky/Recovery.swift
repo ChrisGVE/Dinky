@@ -27,6 +27,10 @@ final class Recovery {
     static let url = FileManager.default.homeDirectoryForCurrentUser
         .appendingPathComponent("Library/Application Support/dinky/journal.json")
 
+    /// Restore problems no retry can fix. Every other failed window stays journaled for the next restore.
+    private static let closed = "closed"
+    private static let spaceGone = "its Space is gone"
+
     /// Windows left behind by a session that crashed, still journaled.
     var recoverable: Int { carried.filter { entries[$0] != nil }.count }
 
@@ -58,7 +62,9 @@ final class Recovery {
     }
 
     /// Stops journaling, moves every journaled window back to its Space, writes its frame, and forgets the
-    /// journal. Blocks until the frames are written. Returns a summary; what could not be restored is logged.
+    /// windows put back or gone for good. The rest stay journaled, on disk too, so the next restore or a
+    /// `dinky recover` after relaunching tries them again. Blocks until the frames are written. Returns a
+    /// summary; what could not be restored is logged.
     @discardableResult
     func restore() -> String {
         recording = false
@@ -68,7 +74,7 @@ final class Recovery {
         var problems: [UInt32: String] = [:]  // by window id
         let live = entries.values.sorted { $0.id < $1.id }.filter { entry in
             guard model.windows[entry.id]?.identity == entry.identity else {
-                problems[entry.id] = "closed"
+                problems[entry.id] = Self.closed
                 return false
             }
             guard displays.displays.contains(where: { $0.frame.intersects(entry.frame) }) else {
@@ -87,11 +93,14 @@ final class Recovery {
             let got = results[entry.id]?.got.map { "\($0)" } ?? "unreachable"
             problems[entry.id] = "frame \(got), wanted \(entry.frame)"
         }
-        for (id, problem) in problems.sorted(by: { $0.key < $1.key }) { fputs("recovery: window \(id): \(problem)\n", stderr) }
+        let retry = problems.filter { $0.value != Self.closed && $0.value != Self.spaceGone }
+        for (id, problem) in problems.sorted(by: { $0.key < $1.key }) {
+            fputs("recovery: window \(id): \(problem)\(retry[id] == nil ? "" : ", kept to try again")\n", stderr)
+        }
         let summary = "restored \(entries.count - problems.count) of \(entries.count) windows"
             + (problems.isEmpty ? "" : ", see the log for the rest")
-        entries = [:]
-        carried = []
+        entries = entries.filter { retry[$0.key] != nil }
+        carried.formIntersection(entries.keys)
         save()
         print("recovery: \(summary)")
         fflush(stdout)
@@ -189,7 +198,7 @@ final class Recovery {
         for entry in entries where entry.spaceID != 0 && dinky_window_space_id(entry.id) != entry.spaceID {
             var ids = [entry.id]
             if displays.display(containingSpace: entry.spaceID) == nil {
-                problems[entry.id] = "its Space is gone"
+                problems[entry.id] = Self.spaceGone
             } else if dinky_move_windows_to_space(&ids, 1, entry.spaceID) {
                 targets[entry.id] = entry.spaceID
             } else {
