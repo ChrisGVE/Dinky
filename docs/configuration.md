@@ -35,7 +35,7 @@ permalink: /configuration/
 ## `[workspace.<number>]`
 
 Override the top-level `default-tiling` and `default-layout` for a globally
-numbered workspace, from 1 to `workspaces`.
+numbered workspace.
 
 <div class="wide-table" markdown="1">
 
