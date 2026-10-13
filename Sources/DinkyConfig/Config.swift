@@ -111,6 +111,10 @@ public struct Config: Equatable {
                 guard let index = Int(number), index > 0, String(index) == number else {
                     throw ConfigError(path: workspacesTable.path(number), "expected a positive workspace number")
                 }
+                // A table past the last workspace would do nothing; say so, as [workspace-to-display] does.
+                guard index <= workspaces else {
+                    throw ConfigError(path: workspacesTable.path(number), "'\(number)' is not a workspace number from 1 to \(workspaces)")
+                }
                 workspaceLayouts[index] = try WorkspaceSettings(workspacesTable.table(number)!,
                                                                 base: WorkspaceSettings(tiling: defaultTiling, layout: defaultLayout))
             }

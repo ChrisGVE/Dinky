@@ -102,6 +102,8 @@ struct ConfigTests {
         #expect(config.settings(forWorkspace: nil) == WorkspaceSettings(tiling: false, layout: .tiles),
                 "an unnumbered workspace gets the top-level settings")
         assertError("[workspace.0]\nlayout = 'fixed'\n", path: "workspace.0", line: 1, contains: "positive workspace number")
+        assertError("[workspace.6]\nlayout = 'fixed'\n", path: "workspace.6", line: 1, contains: "'6' is not a workspace number from 1 to 5")
+        assertError("workspaces = 7\n[workspace.8]\nlayout = 'fixed'\n", path: "workspace.8", line: 2, contains: "from 1 to 7")
         assertError("[workspace.2]\nlayout = 'fixed'\ncolumns = 0\n", path: "workspace.2.columns", line: 3, contains: "at least 1")
         assertError("[workspace.2]\nlayout = 'fixed'\nrows = 0\n", path: "workspace.2.rows", line: 3, contains: "at least 1")
         assertError("[workspace.2]\nlayout = 'dwindle'\ncolumns = 2\n", path: "workspace.2.columns", line: 3, contains: "only valid")
