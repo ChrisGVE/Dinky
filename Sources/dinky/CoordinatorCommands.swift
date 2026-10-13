@@ -30,7 +30,7 @@ extension Coordinator {
     /// (tiles when that is scrolling too). The choice holds until switched again.
     func setScrolling(_ on: Bool, for id: WindowID) {
         guard let key = placements[id]?.space else { return }
-        let configured = algorithm(settings(for: key))
+        let configured = settings(for: key).algorithm
         let new: TilingAlgorithm = on ? .scrolling : configured == .scrolling ? .dwindle(.tiles) : configured
         edit(key) {
             $0.chosenAlgorithm = new == configured ? nil : new
