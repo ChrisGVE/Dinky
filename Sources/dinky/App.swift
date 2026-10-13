@@ -25,9 +25,16 @@ final class DinkyApp: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private var socket: SocketServer?
     private let onboarding = Onboarding()
     private var signals: [DispatchSourceSignal] = []
+    // Releases are Apple silicon only, so an Intel build, made from source, has no update it can run: it neither
+    // checks for one nor offers to.
+    #if arch(x86_64)
+    private static let updates = false
+    #else
+    private static let updates = true
+    #endif
     // Only a bundle carries the feed URL; a bare debug binary would otherwise show an "Unable to Check
     // For Updates" alert at launch that blocks the socket until dismissed.
-    private let updater = SPUStandardUpdaterController(startingUpdater: Bundle.main.infoDictionary?["SUFeedURL"] != nil,
+    private let updater = SPUStandardUpdaterController(startingUpdater: updates && Bundle.main.infoDictionary?["SUFeedURL"] != nil,
                                                        updaterDelegate: nil, userDriverDelegate: nil)
 
     func applicationDidFinishLaunching(_ note: Notification) {
@@ -187,9 +194,11 @@ final class DinkyApp: NSObject, NSApplicationDelegate, NSMenuDelegate {
             menu.addItem(item("Restore \(recoverable) windows from the previous session", "recover"))
         }
         menu.addItem(.separator())
-        let updates = NSMenuItem(title: "Check for Updates…", action: #selector(checkForUpdates(_:)), keyEquivalent: "")
-        updates.target = self
-        menu.addItem(updates)
+        if Self.updates {
+            let updates = NSMenuItem(title: "Check for Updates…", action: #selector(checkForUpdates(_:)), keyEquivalent: "")
+            updates.target = self
+            menu.addItem(updates)
+        }
         menu.addItem(NSMenuItem(title: "Quit dinky", action: #selector(NSApplication.terminate(_:)), keyEquivalent: ""))
     }
 

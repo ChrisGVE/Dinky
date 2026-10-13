@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### Other
+
+- A dinky built from source on an Intel Mac neither checks for updates nor shows Check for Updates in its menu. Releases run only on Apple silicon, so there is no update it could install.
+
 ## 0.19
 
 ### Tiling
