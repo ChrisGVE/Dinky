@@ -213,7 +213,7 @@ enum Dispatcher {
         var current: [LayoutName] = floating ? [.floating] : [.tiling]
         if !floating, coordinator.isScrolling(id) {
             current.append(.scrolling)
-        } else if !floating, let container = coordinator.container(of: id), let axis = coordinator.containerAxis(of: id) {
+        } else if !floating, let (container, axis) = coordinator.layoutContainer(of: id) {
             current += LayoutName.describing(container.mode, axis: axis, auto: container.orientation == .auto)
         }
         let name = LayoutName.next(in: names, current: current)

@@ -157,6 +157,11 @@ first window fills the display alone; the second opens the stack and later ones
 join its bottom. When the master closes, the top of the stack takes its place;
 when the stack empties, the master fills the display again.
 
+`layout tiles` and `layout accordion` switch the stack between tiles and an
+accordion running top to bottom, whichever window is focused, so
+`layout tiles accordion` toggles it. The stack keeps its mode while it is
+closed.
+
 `swap-with-master` swaps the focused window with the master, or the master with
 the top of the stack. `move` swaps the focused window with its neighbour, so the
 master and the stack keep their places. `resize width` changes the master's share, `resize height`
