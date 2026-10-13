@@ -12,6 +12,10 @@
 
 - A browser's picture-in-picture window no longer takes dinky's focus (#13). Chromium browsers keep it above every other window and tag it like a document window, so once it was open, dinky took it for the focused one, and `focus` answered "no focused window" until it was closed. Windows above the normal level are now passed over: focus stays with the tiled window beneath, and `focus left` and friends work with the video playing.
 
+### Other
+
+- The code that picks a workspace's layout algorithm from its settings moved onto `WorkspaceSettings`. Nothing changes in use.
+
 ## 0.19
 
 ### Tiling
