@@ -48,6 +48,7 @@ public final class FrameScheduler: @unchecked Sendable {
     private let read: (FrameJob) -> CGRect?
     private let write: (FrameJob) -> Void
     private let move: (FrameJob) -> Void
+    private let alive: (Int32) -> Bool
 
     private let lock = NSLock()
     private var apps: [Int32: App] = [:]
@@ -58,12 +59,14 @@ public final class FrameScheduler: @unchecked Sendable {
     private var generation = 0
 
     /// `prepare` runs once per process before its first write; `read`, `write` and `move` (position only)
-    /// run on that process's queue.
+    /// run on that process's queue. `alive` says whether a process is still running.
     public init(settle: TimeInterval = 0.1, prepare: @escaping (Int32) -> Void = { _ in },
+                alive: @escaping (Int32) -> Bool = { kill($0, 0) == 0 || errno == EPERM },
                 read: @escaping (FrameJob) -> CGRect?, write: @escaping (FrameJob) -> Void,
                 move: ((FrameJob) -> Void)? = nil) {
         self.settle = settle
         self.prepare = prepare
+        self.alive = alive
         self.read = read
         self.write = write
         self.move = move ?? write
@@ -141,8 +144,9 @@ public final class FrameScheduler: @unchecked Sendable {
     }
 
     /// Forgets a process that quit. Pids are reused, so a new process with the same pid must be prepared again
-    /// and must not inherit what steps wrote. Runs on the process's queue, after anything already queued, and drops
-    /// the queue only when nothing more is waiting on it: one pid never has two queues writing at once.
+    /// and must not inherit what steps wrote. Runs on the process's queue, after anything already queued. Frames
+    /// queued meanwhile, from a pass that still saw the process's windows, are written by a queue that prepares
+    /// again and is dropped once nothing more is waiting on it: one pid never has two queues writing at once.
     public func forget(pid: Int32) {
         lock.withLock {
             guard let app = apps[pid] else { return }
@@ -150,12 +154,18 @@ public final class FrameScheduler: @unchecked Sendable {
                 app.written = [:]
                 app.stepSizes = [:]
                 self.lock.withLock {
+                    app.forgotten = true
                     app.prepared = false
-                    if self.apps[pid] === app, !app.scheduled, app.pending.isEmpty, app.steps.isEmpty, app.batches.isEmpty {
-                        self.apps[pid] = nil
-                    }
+                    self.dropIfDone(app)
                 }
             }
+        }
+    }
+
+    /// Drops a forgotten process's queue once nothing is waiting on it. Under the lock.
+    private func dropIfDone(_ app: App) {
+        if app.forgotten, apps[app.pid] === app, !app.scheduled, app.pending.isEmpty, app.steps.isEmpty, app.batches.isEmpty {
+            apps[app.pid] = nil
         }
     }
 
@@ -176,7 +186,7 @@ public final class FrameScheduler: @unchecked Sendable {
     /// Take everything pending for one process and write it, steps first. Runs on the process's queue.
     private func drain(_ app: App) {
         let (steps, jobs, batches, needsPrepare, generation) = lock.withLock {
-            defer { app.steps = []; app.pending = []; app.batches = []; app.scheduled = false; app.prepared = true }
+            defer { app.steps = []; app.pending = []; app.batches = []; app.scheduled = false; app.prepared = !app.forgotten }
             return (app.steps, app.pending, app.batches, !app.prepared, self.generation)
         }
         if needsPrepare { prepare(app.pid) }
@@ -190,8 +200,14 @@ public final class FrameScheduler: @unchecked Sendable {
             if result.written { app.written[result.job.id] = nil }
             app.stepSizes[result.job.id] = nil
         }
-        // In place, or already where its minimum lets it be: whatever it refused before, it has caught up.
-        lock.withLock { for result in results where result.matched || !result.written { candidates[result.job.id] = nil } }
+        // A pass can still hold the windows of a process that quit: its queue goes once they are written.
+        let quit = !alive(app.pid)
+        lock.withLock {
+            // In place, or already where its minimum lets it be: whatever it refused before, it has caught up.
+            for result in results where result.matched || !result.written { candidates[result.job.id] = nil }
+            if quit { app.forgotten = true; app.prepared = false }
+            dropIfDone(app)
+        }
         for batch in batches { batch.report(results) }
     }
 
@@ -293,6 +309,9 @@ public final class FrameScheduler: @unchecked Sendable {
         var stepSizes: [WindowID: Set<CGSize>] = [:]
         var scheduled = false
         var prepared = false
+        /// The process quit. Each drain prepares again, in case the pid is a new process's by then, and the queue
+        /// is dropped once idle.
+        var forgotten = false
 
         init(_ pid: Int32) {
             self.pid = pid
