@@ -135,6 +135,25 @@ public final class FrameScheduler: @unchecked Sendable {
         }
     }
 
+    /// Forgets a process that quit. Pids are reused, so a new process with the same pid must be prepared again
+    /// and must not inherit what steps wrote. Runs on the process's queue, after anything already queued, and drops
+    /// the queue only when nothing more is waiting on it: one pid never has two queues writing at once.
+    public func forget(pid: Int32) {
+        lock.withLock {
+            guard let app = apps[pid] else { return }
+            app.queue.async {
+                app.written = [:]
+                app.stepSizes = [:]
+                self.lock.withLock {
+                    app.prepared = false
+                    if self.apps[pid] === app, !app.scheduled, app.pending.isEmpty, app.steps.isEmpty, app.batches.isEmpty {
+                        self.apps[pid] = nil
+                    }
+                }
+            }
+        }
+    }
+
     /// Forgets every minimum size and refusal, so windows are asked for their tiles again.
     public func forgetMinimums() {
         lock.withLock { minimums = [:]; candidates = [:] }

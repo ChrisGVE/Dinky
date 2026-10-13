@@ -62,6 +62,12 @@ final class FrameApplier {
         scheduler.forget(id)
     }
 
+    /// Forgets a process that quit: its elements and its queue, so a new process given the same pid starts afresh.
+    func forget(pid: pid_t) {
+        lock.withLock { elements = elements.filter { $0.key.pid != pid } }
+        scheduler.forget(pid: pid)
+    }
+
     /// Forgets every minimum size learned, this session's and the saved ones.
     func forgetMinimums() {
         scheduler.forgetMinimums()

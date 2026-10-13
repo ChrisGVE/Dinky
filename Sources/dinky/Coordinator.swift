@@ -91,6 +91,10 @@ final class Coordinator {
         for name in [NSWorkspace.didHideApplicationNotification, NSWorkspace.didUnhideApplicationNotification] {
             center.addObserver(forName: name, object: nil, queue: .main) { [weak self] _ in self?.reconcile() }
         }
+        center.addObserver(forName: NSWorkspace.didTerminateApplicationNotification, object: nil, queue: .main) { [weak self] note in
+            guard let app = note.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication else { return }
+            self?.applier.forget(pid: app.processIdentifier)
+        }
         let started = model.start()
         beforeTiling()
         guard started else {
