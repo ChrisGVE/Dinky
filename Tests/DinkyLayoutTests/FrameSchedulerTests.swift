@@ -12,6 +12,12 @@ private final class FakeWindows: @unchecked Sendable {
     private(set) var prepared: [Int32] = []
     /// Writes to windows in here block until the semaphore is signalled.
     var holds: [WindowID: DispatchSemaphore] = [:]
+    /// Processes that have quit.
+    var dead: Set<Int32> {
+        get { lock.withLock { _dead } }
+        set { lock.withLock { _dead = newValue } }
+    }
+    private var _dead: Set<Int32> = []
 
     init(_ frames: [WindowID: CGRect] = [:], minWidths: [WindowID: CGFloat] = [:]) {
         self.frames = frames
@@ -24,6 +30,7 @@ private final class FakeWindows: @unchecked Sendable {
         FrameScheduler(
             settle: 0,
             prepare: { pid in self.lock.withLock { self.prepared.append(pid) } },
+            alive: { pid in !self.dead.contains(pid) },
             read: { job in self.lock.withLock { self.frames[job.id] } },
             write: { job in
                 self.holds[job.id]?.wait()
@@ -89,6 +96,34 @@ struct FrameSchedulerTests {
         scheduler.forget(pid: 1)
         _ = submitAndWait(scheduler, [job(1, 11, 0)])
         #expect(fake.prepared == [1, 1], "pids are reused, and the new process has not had its timeout or Enhanced UI set")
+    }
+
+    @Test func `A process forgotten while frames were queued for it is prepared again when its pid comes back`() {
+        let fake = FakeWindows()
+        let hold = DispatchSemaphore(value: 0)
+        fake.holds[10] = hold
+        let scheduler = fake.scheduler()
+        scheduler.submit([job(1, 10, 0)])
+        Thread.sleep(forTimeInterval: 0.05)  // the queue is now stuck in window 10's write
+        scheduler.forget(pid: 1)
+        let done = DispatchSemaphore(value: 0)
+        scheduler.submit([job(1, 11, 0)]) { _ in done.signal() }  // a late pass for the quit process
+        hold.signal()
+        #expect(done.wait(timeout: .now() + 2) == .success)
+        _ = submitAndWait(scheduler, [job(1, 12, 0)])
+        #expect(fake.prepared == [1, 1, 1], "the queue was forgotten once the late frames were written")
+    }
+
+    @Test func `A process that quit is prepared again after a late pass recreated its queue`() {
+        let fake = FakeWindows()
+        let scheduler = fake.scheduler()
+        _ = submitAndWait(scheduler, [job(1, 10, 0)])
+        fake.dead = [1]
+        scheduler.forget(pid: 1)
+        _ = submitAndWait(scheduler, [job(1, 10, 0)])  // its windows are not destroyed yet
+        fake.dead = []
+        _ = submitAndWait(scheduler, [job(1, 11, 0)])
+        #expect(fake.prepared == [1, 1, 1], "pids are reused, and the new process has not had its timeout or Enhanced UI set")
     }
 
     @Test func `Forgetting a busy process still writes what it had queued`() {
