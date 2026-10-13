@@ -68,9 +68,13 @@ public final class ConfigWatcher {
         let fd = open(url.deletingLastPathComponent().path, O_EVTONLY)
         guard fd >= 0 else { return }
         let source = DispatchSource.makeFileSystemObjectSource(fileDescriptor: fd, eventMask: .write, queue: queue)
-        // Any file coming or going in the directory lands here; only a new entry at the config path counts.
+        // Any file coming or going in the directory lands here; only a new entry at the config path counts. It is
+        // noted at once, so the neighbours' events that follow don't push the debounced reload back again and again.
         source.setEventHandler { [weak self] in
-            guard let self, Entry(url) != entry else { return }
+            guard let self else { return }
+            let now = Entry(url)
+            guard now != entry else { return }
+            entry = now
             changed()
         }
         source.setCancelHandler { close(fd) }
