@@ -19,6 +19,7 @@
 - A CLI argument with both `'` and `"` in it, such as a `--format` of `it's "%{app-name}"`, reaches dinky as typed. Before, quotes were lost, and some mixes swallowed the flags after it.
 - Switching workspaces on two displays in quick succession lands each display where it was sent. Before, a switch asked for while the other display's switch moved the pointer could be dropped, with its follow-up running on the old Space.
 - A window you are dragging stays under the pointer when something else changes the layout mid-drag, such as another window opening or the Dock hiding. Before, the pass that followed wrote the dragged window back to its tile.
+- A `dinky.toml` that is a symlink reloads when the link itself is replaced, as `ln -sf` or a dotfiles tool does it. Before, dinky went on watching the file the old link pointed to.
 
 ## 0.19
 
