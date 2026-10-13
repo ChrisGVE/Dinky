@@ -26,7 +26,9 @@ final class WorkspaceNumbers {
     private var pendingHomes: [UInt32: Int]?
     /// The displays as the last display change left them.
     private var knownDisplays: Set<String> = []
-    /// Set by a display coming or going, until an arrangement completes and windows are back on their workspaces.
+    /// Set by a display coming or going, until the next arrangement has run. Homes are not noted meanwhile, so
+    /// they say where windows were before the change, and only then: returning windows after a later run, such
+    /// as a config reload long after, would undo whatever the user moved since.
     private var displaced = false
 
     var count: Int { AppState.shared.config.workspaces }
@@ -120,8 +122,12 @@ final class WorkspaceNumbers {
                 break
             }
         }
-        if displaced, completed {
-            returnDisplaced()
+        if displaced {
+            if completed {
+                returnDisplaced()
+            } else {
+                print("workspaces: windows a display change moved off their workspace stay where they are")
+            }
             displaced = false
         }
         // Observers hear the result once, not every step on the way.
