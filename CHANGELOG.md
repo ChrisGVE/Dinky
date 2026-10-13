@@ -18,6 +18,7 @@
 - Windows moved since a display was plugged in or out stay where you put them. Before, when arranging the workspaces right after the display change stopped short, a later config reload sent windows back to where they had been before that change.
 - A CLI argument with both `'` and `"` in it, such as a `--format` of `it's "%{app-name}"`, reaches dinky as typed. Before, quotes were lost, and some mixes swallowed the flags after it.
 - Switching workspaces on two displays in quick succession lands each display where it was sent. Before, a switch asked for while the other display's switch moved the pointer could be dropped, with its follow-up running on the old Space.
+- A window you are dragging stays under the pointer when something else changes the layout mid-drag, such as another window opening or the Dock hiding. Before, the pass that followed wrote the dragged window back to its tile.
 
 ## 0.19
 
