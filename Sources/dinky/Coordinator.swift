@@ -251,6 +251,10 @@ final class Coordinator {
             workspaces[key]!.autoOrientAccordions = config.accordion.orientation == .auto
             workspaces[key]!.columnWidth = config.scrolling.columnWidth
             workspaces[key]!.masterSize = config.master.size
+            // A master layout chosen with `layout master` takes the side from the config, as a configured one does.
+            if case .master = workspaces[key]!.chosenAlgorithm {
+                workspaces[key]!.chosenAlgorithm = algorithm(WorkspaceSettings(tiling: true, layout: .master))
+            }
             workspaces[key]!.setAlgorithm(workspaces[key]!.chosenAlgorithm ?? algorithm(settings(for: key)))
         }
     }
