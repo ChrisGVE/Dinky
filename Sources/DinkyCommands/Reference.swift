@@ -50,6 +50,9 @@ extension Command {
             description: "Put every window on the workspace back into its layout, in order, undoing tree edits. A scrolling workspace keeps its column widths."),
         Doc(syntax: "balance-sizes",
             description: "Give every window on the focused workspace an equal share of its container."),
+        Doc(syntax: "swap-with-master",
+            description: "In a master layout, swap the focused window with the master, or the master with the top of the stack. "
+                + "Both keep their tiles and the focus stays with the window."),
         Doc(syntax: "retile",
             description: "Re-read every window and re-apply the layout of every workspace on screen."),
         Doc(syntax: "clear-minimum-sizes",
