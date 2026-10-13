@@ -72,7 +72,9 @@ final class Coordinator {
         self.config = config
     }
 
-    func start() {
+    /// `beforeTiling` runs once the model has read every window, whether or not it is subscribed to events, and
+    /// before anything is tiled: the last moment the frames it holds are the ones dinky found.
+    func start(beforeTiling: () -> Void = {}) {
         model.observe { [weak self] event in self?.handle(event) }
         animator.onArrive = { [weak self] ids in self?.borders?.arrived(ids) }
         var known = displays.displays
@@ -89,7 +91,9 @@ final class Coordinator {
         for name in [NSWorkspace.didHideApplicationNotification, NSWorkspace.didUnhideApplicationNotification] {
             center.addObserver(forName: name, object: nil, queue: .main) { [weak self] _ in self?.reconcile() }
         }
-        guard model.start() else {
+        let started = model.start()
+        beforeTiling()
+        guard started else {
             fputs("coordinator: no WindowServer events\n", stderr)
             return
         }

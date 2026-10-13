@@ -61,12 +61,12 @@ final class AppState {
         self.coordinator = coordinator
         // A disable sent before Accessibility was granted had no coordinator to reach.
         coordinator.enabled = enabled
-        coordinator.start()
+        // Journal the frames the model read before the first arrange writes any.
+        coordinator.start { recovery.start(model: coordinator.model, applier: coordinator.applier) }
         // Once the windows are known, so each workspace's windows move with it, and before the hooks, which
         // report workspace numbers.
         numbers.arrange()
         hooks.start()
-        recovery.start(model: coordinator.model, applier: coordinator.applier)
         hoverFocus.update(config: config.focusFollowsMouse)
     }
 
