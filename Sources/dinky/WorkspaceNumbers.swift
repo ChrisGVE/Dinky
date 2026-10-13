@@ -9,7 +9,8 @@ import DinkyPrivate
 // runs a workspace stays on its Space by ID, wherever macOS moves that Space.
 // A display that goes away has macOS pour the windows of its Spaces onto another display's first Space, which
 // is workspace 1's. So the workspace of every window is noted while the displays are settled, and once the
-// Spaces are arranged after a display change, windows found off their workspace go back to it. Main thread only.
+// Spaces are arranged after a display change, windows found off their workspace go back to it, unless dinky
+// was disabled at the time (`DisplacedWindows`). Main thread only.
 final class WorkspaceNumbers {
     /// Workspace number to Space.
     private(set) var binding: [Int: UInt64] = [:]
@@ -26,10 +27,9 @@ final class WorkspaceNumbers {
     private var pendingHomes: [UInt32: Int]?
     /// The displays as the last display change left them.
     private var knownDisplays: Set<String> = []
-    /// Set by a display coming or going, until the next arrangement has run. Homes are not noted meanwhile, so
-    /// they say where windows were before the change, and only then: returning windows after a later run, such
-    /// as a config reload long after, would undo whatever the user moved since.
-    private var displaced = false
+    /// Whether windows a display change moved go back after the next arrangement, and only then: returning
+    /// them after a later run, such as a config reload long after, would undo whatever the user moved since.
+    private var displaced = DisplacedWindows()
 
     var count: Int { AppState.shared.config.workspaces }
 
@@ -61,7 +61,7 @@ final class WorkspaceNumbers {
             if !connected.isEmpty { print("displays: connected \(connected.sorted())") }
             if !disconnected.isEmpty { print("displays: disconnected \(disconnected.sorted())") }
             fflush(stdout)
-            if !connected.isEmpty || !disconnected.isEmpty { displaced = true }
+            if !connected.isEmpty || !disconnected.isEmpty { displaced.displaysChanged() }
             arrangeSoon()
         }
         Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] _ in self?.noteHomes() }
@@ -85,7 +85,14 @@ final class WorkspaceNumbers {
     /// waits for WindowServer to show its result, normally within a poll or two. Does nothing while dinky is
     /// disabled, which leaves Spaces and windows alone; enabling arranges.
     func arrange() {
-        guard AppState.shared.enabled, !arranging else { return }
+        guard AppState.shared.enabled else {
+            // Windows stay where macOS put them, and homes are noted again from here.
+            if displaced.arranged(enabled: false, completed: false) == .leaveThem {
+                print("workspaces: windows a display change moved while dinky was disabled stay where they are")
+            }
+            return
+        }
+        guard !arranging else { return }
         // A swipe in flight would land on a Space this may remove.
         guard !SpaceSwitcher.shared.switching else { return arrangeSoon(after: 0.3) }
         arranging = true
@@ -122,13 +129,10 @@ final class WorkspaceNumbers {
                 break
             }
         }
-        if displaced {
-            if completed {
-                returnDisplaced()
-            } else {
-                print("workspaces: windows a display change moved off their workspace stay where they are")
-            }
-            displaced = false
+        switch displaced.arranged(enabled: true, completed: completed) {
+        case .returnThem: returnDisplaced()
+        case .leaveThem: print("workspaces: windows a display change moved off their workspace stay where they are")
+        case .nothing: break
         }
         // Observers hear the result once, not every step on the way.
         if binding != start {
@@ -149,7 +153,7 @@ final class WorkspaceNumbers {
     /// Notes which workspace each window is on, once a second. A note is kept only when the displays are the
     /// same a second later, so windows macOS is pouring off a display that is going away are never noted there.
     private func noteHomes() {
-        guard !displaced, !arranging, onlineDisplays == knownDisplays, let model = AppState.shared.coordinator?.model else {
+        guard !displaced.pending, !arranging, onlineDisplays == knownDisplays, let model = AppState.shared.coordinator?.model else {
             pendingHomes = nil
             return
         }
