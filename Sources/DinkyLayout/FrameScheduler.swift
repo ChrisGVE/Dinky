@@ -30,6 +30,11 @@ public struct FrameResult: Equatable, Sendable {
     public var matched: Bool { got.map { $0.isClose(to: target, within: 2) } ?? false }
 }
 
+extension Sequence<FrameResult> {
+    /// Windows whose frame could not be read back: their app is likely hung, or the window is gone.
+    public var unreadable: Set<WindowID> { Set(filter { $0.got == nil }.map(\.job.id)) }
+}
+
 /// Schedules frame writes: one serial queue per process so a slow app only stalls itself,
 /// the newest frame per window wins, and a window that refuses its frame is written at most twice.
 /// Animation steps take a lighter path on the same queues: written once, not read back, and only moved
