@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+### Tiling
+
+- New `master` layout, after Hyprland's: one window, the master, takes 0.6 of the display (`[master] size`) on the left or right (`[master] orientation`) and the others stack beside it. The first window fills the display alone, the second opens the stack and later ones join its bottom. When the master closes, the top of the stack takes its place; when the stack empties, the master fills the display again.
+
 ### Fixes
 
 - A browser's picture-in-picture window no longer takes dinky's focus (#13). Chromium browsers keep it above every other window and tag it like a document window, so once it was open, dinky took it for the focused one, and `focus` answered "no focused window" until it was closed. Windows above the normal level are now passed over: focus stays with the tiled window beneath, and `focus left` and friends work with the video playing.
