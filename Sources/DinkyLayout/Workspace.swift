@@ -236,7 +236,8 @@ public struct Workspace: Equatable, Sendable {
     /// Switch algorithms. Changing the template deliberately rearranges the existing windows once.
     public mutating func setAlgorithm(_ new: TilingAlgorithm) {
         guard algorithm != new else { return }
-        let ids = orderedWindows
+        var ids = orderedWindows
+        if case .master = new, !isMaster { ids = takeOverForMaster(ids) }
         algorithm = new
         rebuild(ids)
     }

@@ -157,6 +157,10 @@ first window fills the display alone; the second opens the stack and later ones
 join its bottom. When the master closes, the top of the stack takes its place;
 when the stack empties, the master fills the display again.
 
+A workspace that switches to the master layout, such as after you change its
+`layout`, makes the focused window the master and stacks the others beside it
+in their order: as an accordion if most of them were in one, else as tiles.
+
 `layout tiles` and `layout accordion` switch the stack between tiles and an
 accordion running top to bottom, whichever window is focused, so
 `layout tiles accordion` toggles it. The stack keeps its mode while it is

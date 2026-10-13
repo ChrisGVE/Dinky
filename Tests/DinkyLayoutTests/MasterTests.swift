@@ -197,17 +197,48 @@ struct MasterCommandTests {
         #expect(f[2] == rect(600, 0, 400, 300))
     }
 
-    @Test func `Switching layouts keeps the order and the focus`() {
+    @Test func `Switching to master makes the focused window the master`() {
         var ws = Workspace(bounds: rect(0, 0, 1000, 600))
         for id: WindowID in [1, 2, 3] { ws.insert(id) }
         ws.focus(2)
         ws.setAlgorithm(.master(.left))
-        #expect(ws.windows == [1, 2, 3])
+        #expect(ws.windows == [2, 1, 3], "the others stack in their order")
         #expect(ws.focused == 2)
+        #expect(frames(ws)[2] == rect(0, 0, 600, 600))
+        #expect(ws.container(of: 1)?.mode == .tiles, "tiled windows stack as tiles")
+        ws.focus(3)
         ws.setAlgorithm(.master(.right))
-        #expect(frames(ws)[1] == rect(400, 0, 600, 600), "the master stays the master on the other side")
+        #expect(frames(ws)[2] == rect(400, 0, 600, 600), "changing sides keeps the master")
         ws.setAlgorithm(.dwindle(.tiles))
+        #expect(ws.windows == [2, 1, 3], "the master first")
+        #expect(ws.focused == 3)
+    }
+
+    @Test func `Windows shown as an accordion stack as one`() {
+        var ws = Workspace(bounds: rect(0, 0, 1000, 600), algorithm: .dwindle(.accordion))
+        for id: WindowID in [1, 2, 3] { ws.insert(id) }
+        ws.focus(1)
+        ws.setAlgorithm(.master(.left))
         #expect(ws.windows == [1, 2, 3])
+        #expect(ws.container(of: 2)?.mode == .accordion)
+        #expect(ws.containerAxis(of: 2) == .vertical)
+    }
+
+    @Test func `The stack takes the mode most of the other windows had`() {
+        var ws = Workspace(bounds: rect(0, 0, 1000, 600))
+        for id: WindowID in [1, 2, 3] { ws.insert(id) }
+        ws.focus(2)
+        ws.setLayout(.accordion, nil)
+        #expect(ws.container(of: 3)?.mode == .accordion, "2 and 3 share an accordion beside 1")
+        ws.focus(1)
+        ws.setAlgorithm(.master(.left))
+        #expect(ws.container(of: 2)?.mode == .accordion)
+        var mixed = Workspace(bounds: rect(0, 0, 1000, 600))
+        for id: WindowID in [1, 2, 3] { mixed.insert(id) }
+        mixed.focus(2)
+        mixed.setLayout(.accordion, nil)
+        mixed.setAlgorithm(.master(.left))
+        #expect(mixed.container(of: 1)?.mode == .tiles, "one accordion window against one tiled one is no majority")
     }
 
     @Test func `Flattening rebuilds a shape a join broke`() {
