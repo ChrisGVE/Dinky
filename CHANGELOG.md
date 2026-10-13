@@ -17,6 +17,7 @@
 - Showing, hiding or moving the Dock, or turning menu bar hiding on or off, fits the tiles to the new free area. Before, they kept the old one until something else changed, overlapping the Dock or leaving a gap.
 - Windows moved since a display was plugged in or out stay where you put them. Before, when arranging the workspaces right after the display change stopped short, a later config reload sent windows back to where they had been before that change.
 - A CLI argument with both `'` and `"` in it, such as a `--format` of `it's "%{app-name}"`, reaches dinky as typed. Before, quotes were lost, and some mixes swallowed the flags after it.
+- Switching workspaces on two displays in quick succession lands each display where it was sent. Before, a switch asked for while the other display's switch moved the pointer could be dropped, with its follow-up running on the old Space.
 
 ## 0.19
 
