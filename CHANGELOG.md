@@ -20,6 +20,7 @@
 - Switching workspaces on two displays in quick succession lands each display where it was sent. Before, a switch asked for while the other display's switch moved the pointer could be dropped, with its follow-up running on the old Space.
 - A window you are dragging stays under the pointer when something else changes the layout mid-drag, such as another window opening or the Dock hiding. Before, the pass that followed wrote the dragged window back to its tile.
 - A `dinky.toml` that is a symlink reloads when the link itself is replaced, as `ln -sf` or a dotfiles tool does it. Before, dinky went on watching the file the old link pointed to.
+- `dinky doctor` says dinky is developed and tested on macOS 27. Before, it claimed every build was built against 27.0, whichever SDK built it.
 
 ## 0.19
 
