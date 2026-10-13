@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### Key bindings
+
+- `hyper` and `meh` name the usual modifier combinations in bindings: `hyper-1` is `alt-ctrl-cmd-shift-1`, and `meh-1` is `alt-ctrl-shift-1`.
+
 ## 0.18
 
 ### Key bindings
