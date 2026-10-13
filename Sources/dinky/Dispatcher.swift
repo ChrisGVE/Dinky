@@ -67,6 +67,8 @@ enum Dispatcher {
             return tree("flatten-workspace-tree") { $0.flatten(); return true }
         case .balanceSizes:
             return tree("balance-sizes") { $0.balanceSizes(); return true }
+        case .swapWithMaster:
+            return tree("swap-with-master") { $0.swapWithMaster() }
         case .retile:
             guard let coordinator = AppState.shared.coordinator else { return .error("tiling is not running") }
             coordinator.reconcile()

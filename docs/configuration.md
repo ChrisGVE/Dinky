@@ -157,8 +157,9 @@ first window fills the display alone; the second opens the stack and later ones
 join its bottom. When the master closes, the top of the stack takes its place;
 when the stack empties, the master fills the display again.
 
-`move` swaps the focused window with its neighbour, so the master and the stack
-keep their places. `resize width` changes the master's share, `resize height`
+`swap-with-master` swaps the focused window with the master, or the master with
+the top of the stack. `move` swaps the focused window with its neighbour, so the
+master and the stack keep their places. `resize width` changes the master's share, `resize height`
 a window's share of the stack, and `balance-sizes` gives the master its `size`
 back and the stack equal shares. A command that changes the shape, such as
 `join-with`, leaves the layout until `flatten-workspace-tree` rebuilds it, as

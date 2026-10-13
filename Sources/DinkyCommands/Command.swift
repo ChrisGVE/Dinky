@@ -22,6 +22,8 @@ public enum Command: Equatable, Sendable {
     case fullscreen
     case flattenWorkspaceTree
     case balanceSizes
+    /// Swap the focused window with the master of a master workspace, or the master with the top of the stack.
+    case swapWithMaster
     case retile
     case clearMinimumSizes
     case mode(String)

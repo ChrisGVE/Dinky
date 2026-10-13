@@ -115,7 +115,7 @@ struct ParseTests {
     private static let knownGood = [
         "workspace 1", "workspace-back-and-forth", "move-window-to-workspace 2 --follow", "move-window-to-display next",
         "focus left", "focus-monitor next", "move left", "join-with left", "resize smart +10", "layout tiles",
-        "fullscreen", "flatten-workspace-tree", "balance-sizes", "retile", "clear-minimum-sizes", "mode main", "reload-config", "enable on",
+        "fullscreen", "flatten-workspace-tree", "balance-sizes", "swap-with-master", "retile", "clear-minimum-sizes", "mode main", "reload-config", "enable on",
         "list-workspaces", "list-windows", "list-monitors", "list-displays", "list-modes", "debug-state", "exec-and-forget true",
     ]
 

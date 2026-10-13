@@ -27,6 +27,7 @@ prints it.
 | `fullscreen` | Toggle filling the workspace (not macOS full screen). |
 | `flatten-workspace-tree` | Put every window back into the workspace's layout, in order, undoing tree edits. A scrolling workspace keeps its column widths. |
 | `balance-sizes` | Give every window an equal share. |
+| `swap-with-master` | In a [master layout](configuration.md#master), swap the focused window with the master, or the master with the top of the stack. |
 | `retile` | Re-read windows and re-apply every layout. |
 | `clear-minimum-sizes` | Forget the minimum window sizes learned for every app and re-apply every layout. |
 | `mode <name>` | Switch binding mode. |
