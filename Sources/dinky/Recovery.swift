@@ -44,9 +44,9 @@ final class Recovery {
     private var saveScheduled = false
     private var applier: FrameApplier!
 
-    /// Carries over a crashed session's journal, then journals windows as the model sees them, so each frame is
-    /// the one the model read before dinky wrote any. Restores write through the coordinator's applier, so the
-    /// minimum sizes it learns have one owner.
+    /// Carries over a crashed session's journal and follows the model, so once `resume()` turns journaling on,
+    /// each frame is the one the model read before dinky wrote any. Restores write through the coordinator's
+    /// applier, so the minimum sizes it learns have one owner.
     func start(model: WindowModel, applier: FrameApplier) {
         self.model = model
         self.applier = applier
@@ -54,7 +54,6 @@ final class Recovery {
         model.observe { [weak self] _ in self?.record() }
         NSWorkspace.shared.notificationCenter.addObserver(forName: NSWorkspace.activeSpaceDidChangeNotification,
                                                           object: nil, queue: .main) { [weak self] _ in self?.record() }
-        resume()
     }
 
     /// Journals windows from now on. Call before tiling (re)starts.
