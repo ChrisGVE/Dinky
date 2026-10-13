@@ -13,6 +13,7 @@
 - Disabled dinky leaves windows and Spaces alone. Before, while off it still ran `[[rules]]` on new windows, moved new windows to the focused display, and rearranged workspaces on a config reload or display change. A `dinky enable off` sent before Accessibility was granted no longer gets lost either.
 - Disabling, quitting and `dinky recover` put windows back where they were when dinky launched. Before, the frames recorded as the originals could already be the tiled ones, so restoring left windows tiled.
 - A window that could not be put back, because its display was unplugged or its app did not answer, stays journaled, so the next disable, quit or `dinky recover` tries it again. Before, it was forgotten after the first try.
+- One app that stops responding while windows are being put back no longer spoils the report for the others. Before, every window counted as not restored when any app took longer than 3 seconds.
 
 ## 0.19
 

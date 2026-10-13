@@ -30,6 +30,8 @@ final class Recovery {
     /// Restore problems no retry can fix. Every other failed window stays journaled for the next restore.
     private static let closed = "closed"
     private static let spaceGone = "its Space is gone"
+    /// How long a restore waits for apps to take their frames. A hung app must not hold up quitting for long.
+    private static let answerTimeout: TimeInterval = 3
 
     /// Windows left behind by a session that crashed, still journaled.
     var recoverable: Int { carried.filter { entries[$0] != nil }.count }
@@ -90,8 +92,11 @@ final class Recovery {
         let moved = moveBack(live, problems: &problems)
         for (id, result) in writeFrames(live.filter { moved.contains($0.id) }) { results[id] = result }
         for entry in live where results[entry.id]?.matched != true && problems[entry.id] == nil {
-            let got = results[entry.id]?.got.map { "\($0)" } ?? "unreachable"
-            problems[entry.id] = "frame \(got), wanted \(entry.frame)"
+            let outcome = switch results[entry.id] {
+            case nil: "no answer within \(Int(Self.answerTimeout)) s"
+            case let result?: result.got.map { "frame \($0)" } ?? "unreadable"
+            }
+            problems[entry.id] = "\(outcome), wanted \(entry.frame)"
         }
         let retry = problems.filter { $0.value != Self.closed && $0.value != Self.spaceGone }
         for (id, problem) in problems.sorted(by: { $0.key < $1.key }) {
@@ -175,20 +180,29 @@ final class Recovery {
 
     // MARK: Restoring
 
-    /// Writes the entries' frames, in the current stacking order so nothing is raised. Waits for the results.
+    /// Writes the entries' frames, in the current stacking order so nothing is raised. Waits for the results, up
+    /// to `answerTimeout`; an app that has not answered by then has no results, and the other apps still do.
     private func writeFrames(_ entries: [Entry]) -> [UInt32: FrameResult] {
         guard !entries.isEmpty else { return [:] }
         let stacking = Dictionary(onScreenOrder().enumerated().map { ($1, $0) }, uniquingKeysWith: { first, _ in first })
         let layout = Layout(frames: Dictionary(uniqueKeysWithValues: entries.map { ($0.id, $0.frame) }),
                             order: entries.map(\.id).sorted { (stacking[$0] ?? .max) < (stacking[$1] ?? .max) })
+        let results = Results()
         let done = DispatchSemaphore(value: 0)
-        var results: [FrameResult] = []
-        applier.apply(layout, pids: Dictionary(uniqueKeysWithValues: entries.map { ($0.id, $0.pid) })) {
-            results = $0
-            done.signal()
-        }
-        _ = done.wait(timeout: .now() + 3)
-        return Dictionary(results.map { ($0.job.id, $0) }, uniquingKeysWith: { $1 })
+        applier.apply(layout, pids: Dictionary(uniqueKeysWithValues: entries.map { ($0.id, $0.pid) }),
+                      progress: results.add) { _ in done.signal() }
+        _ = done.wait(timeout: .now() + Self.answerTimeout)
+        return results.byID
+    }
+
+    /// Readbacks as each app reports them. They arrive on background queues, a hung app's possibly after the
+    /// restore stopped waiting, so they are only touched under the lock.
+    private final class Results: @unchecked Sendable {
+        private let lock = NSLock()
+        private var results: [UInt32: FrameResult] = [:]
+
+        func add(_ new: [FrameResult]) { lock.withLock { for result in new { results[result.job.id] = result } } }
+        var byID: [UInt32: FrameResult] { lock.withLock { results } }
     }
 
     /// Moves windows that are off their original Space back onto it, if it still exists. Returns the ids that arrived.
