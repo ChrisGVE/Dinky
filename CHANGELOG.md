@@ -24,6 +24,7 @@
 - When dinky can't listen to the keyboard, as can happen right after Accessibility is granted, it keeps trying and the menu bar shows `!` with a menu line saying the key bindings are off. Before, the bindings stayed dead until dinky restarted, with nothing to say so.
 - An app that stops responding no longer holds up the next arrangement, or disabling and quitting dinky. Before, raising its windows into their stacking order blocked for seconds, and everything waiting on that arrangement waited too.
 - `dinky doctor` warns about a `[workspace.<number>]` table past the last workspace. Before, nothing said the table did nothing.
+- Overlapping windows, as in an accordion, end up in the stacking order of the latest arrangement when an app is slow to answer. Before, an earlier arrangement that waited on that app could raise its windows last, putting the old order back.
 
 ## 0.19
 
