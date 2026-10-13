@@ -82,6 +82,29 @@ struct FrameSchedulerTests {
         #expect(fake.prepared.sorted() == [1, 2])
     }
 
+    @Test func `A process that quit is prepared again when its pid comes back`() {
+        let fake = FakeWindows()
+        let scheduler = fake.scheduler()
+        _ = submitAndWait(scheduler, [job(1, 10, 0)])
+        scheduler.forget(pid: 1)
+        _ = submitAndWait(scheduler, [job(1, 11, 0)])
+        #expect(fake.prepared == [1, 1], "pids are reused, and the new process has not had its timeout or Enhanced UI set")
+    }
+
+    @Test func `Forgetting a busy process still writes what it had queued`() {
+        let fake = FakeWindows()
+        let hold = DispatchSemaphore(value: 0)
+        fake.holds[10] = hold
+        let scheduler = fake.scheduler()
+        let done = DispatchSemaphore(value: 0)
+        var results: [FrameResult] = []
+        scheduler.submit([job(1, 10, 0)]) { results = $0; done.signal() }
+        scheduler.forget(pid: 1)
+        hold.signal()
+        #expect(done.wait(timeout: .now() + 2) == .success)
+        #expect(results.map(\.matched) == [true])
+    }
+
     @Test func `Newest frame wins while queue is busy`() {
         let fake = FakeWindows()
         let hold = DispatchSemaphore(value: 0)
