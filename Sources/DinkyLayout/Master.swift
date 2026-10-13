@@ -90,6 +90,16 @@ extension Workspace {
         }
     }
 
+    /// Switching to the master layout from another: the focused window becomes the master and the others stack in
+    /// `ids` order, as an accordion if most of them were shown in one, else as tiles. Returns the master order.
+    mutating func takeOverForMaster(_ ids: [WindowID]) -> [WindowID] {
+        let others = ids.filter { $0 != focused }
+        let inAccordions = others.filter { container(of: $0)?.mode == .accordion }.count
+        stackMode = inAccordions * 2 > others.count ? .accordion : .tiles
+        guard let focused, ids.contains(focused) else { return ids }
+        return [focused] + others
+    }
+
     /// Set the stack's mode, orientation or both, and keep them for a stack opened later. The stack keeps running
     /// top to bottom when it becomes an accordion, whatever `autoOrientAccordions` says, unless an orientation is given.
     mutating func setStackLayout(_ mode: LayoutMode?, _ orientation: ContainerOrientation?) {
