@@ -17,6 +17,8 @@ final class FrameApplier {
     private var scheduler: FrameScheduler!
     private let lock = NSLock()
     private var elements: [Key: AXUIElement] = [:]
+    /// Windows written but not read back, already logged, so a window that stays unreadable is logged once.
+    private var unreadable: Set<WindowID> = []
     /// The largest minimum size any window of an app has shown, by bundle id. Kept across sessions in
     /// Application Support, so the write-settle-retry chain that discovers a minimum runs once per app ever.
     private var appMinimums: [String: CGSize] = [:]
@@ -33,9 +35,9 @@ final class FrameApplier {
                 AXUIElementSetMessagingTimeout(app, Self.timeout)
                 AXUIElementSetAttributeValue(app, "AXEnhancedUserInterface" as CFString, kCFBooleanFalse)
             },
-            read: { [unowned self] job in element(pid: job.pid, id: job.id).flatMap(frame) },
-            write: { [unowned self] job in element(pid: job.pid, id: job.id).map { write(job.frame, to: $0) } },
-            move: { [unowned self] job in element(pid: job.pid, id: job.id).map { move(job.frame.origin, to: $0) } }
+            read: { [unowned self] job in withElement(pid: job.pid, id: job.id, frame) ?? nil },
+            write: { [unowned self] job in withElement(pid: job.pid, id: job.id) { write(job.frame, to: $0) } },
+            move: { [unowned self] job in withElement(pid: job.pid, id: job.id) { move(job.frame.origin, to: $0) } }
         )
     }
 
@@ -53,7 +55,10 @@ final class FrameApplier {
 
     /// Forgets a window that is gone: its element and what the scheduler learned about it.
     func forget(_ id: WindowID) {
-        lock.withLock { elements = elements.filter { $0.key.id != id } }
+        lock.withLock {
+            elements = elements.filter { $0.key.id != id }
+            unreadable.remove(id)
+        }
         scheduler.forget(id)
     }
 
@@ -80,6 +85,7 @@ final class FrameApplier {
         }
         scheduler.submit(jobs) { [unowned self] results in
             rememberAppMinimums(results)
+            logUnreadable(results)
             raiseIntoOrder(layout, pids: pids, front: front) { completion(results) }
         }
     }
@@ -115,6 +121,17 @@ final class FrameApplier {
         if changed { saveMinimums() }
     }
 
+    /// The scheduler gives up on a window it wrote but cannot read back, so say so, once per window until it answers.
+    private func logUnreadable(_ results: [FrameResult]) {
+        let fresh = lock.withLock {
+            unreadable.subtract(results.filter { $0.got != nil }.map(\.job.id))
+            return results.filter { $0.written && $0.got == nil && unreadable.insert($0.job.id).inserted }
+        }
+        for result in fresh {
+            print("\(stamp()) frames: wrote window \(result.job.id) of pid \(result.job.pid) but could not read it back, not retrying")
+        }
+    }
+
     private static func loadMinimums() -> [String: CGSize] {
         guard let data = try? Data(contentsOf: minimumsURL),
               let raw = try? JSONDecoder().decode([String: [CGFloat]].self, from: data) else { return [:] }
@@ -142,42 +159,66 @@ final class FrameApplier {
     /// Raise back to front, so the last raised ends up frontmost. AXRaise does not activate the app.
     private func raise(_ ids: [WindowID], pids: [WindowID: pid_t]) {
         for id in ids {
-            guard let pid = pids[id], let element = element(pid: pid, id: id) else { continue }
-            AXUIElementPerformAction(element, kAXRaiseAction as CFString)
+            guard let pid = pids[id] else { continue }
+            withElement(pid: pid, id: id) { AXUIElementPerformAction($0, kAXRaiseAction as CFString) }
         }
     }
 
-    private func element(pid: pid_t, id: WindowID) -> AXUIElement? {
+    /// Runs `body` on the window's element, cached by window. An app can replace a window's element while the
+    /// window lives on, same id and all: Slack hides its window on close and hands out a new element when it is
+    /// reopened. So when the app calls the cached element invalid, it is looked up again and `body` runs once more.
+    /// Nil when the window has no element.
+    @discardableResult
+    private func withElement<T>(pid: pid_t, id: WindowID, _ body: (AXUIElement) -> (T, AXError)) -> T? {
         let key = Key(pid: pid, id: id)
-        if let cached = lock.withLock({ elements[key] }) { return cached }
-        guard let element = axWindow(pid: pid, wid: id, timeout: Self.timeout) else { return nil }
+        let cached = lock.withLock { elements[key] }
+        guard let element = cached ?? lookUp(key) else { return nil }
+        let (value, error) = body(element)
+        guard error == .invalidUIElement, cached != nil else { return value }
+        guard let fresh = lookUp(key) else {
+            print("\(stamp()) frames: window \(id) of pid \(pid) no longer has an Accessibility element")
+            return nil
+        }
+        return body(fresh).0
+    }
+
+    /// `withElement` for a call that only reports its error.
+    private func withElement(pid: pid_t, id: WindowID, _ body: (AXUIElement) -> AXError) {
+        withElement(pid: pid, id: id) { ((), body($0)) }
+    }
+
+    /// Looks the window up and caches what it finds, so a failed lookup also drops a stale element.
+    private func lookUp(_ key: Key) -> AXUIElement? {
+        let element = axWindow(pid: key.pid, wid: key.id, timeout: Self.timeout)
         lock.withLock { elements[key] = element }
         return element
     }
 
     // Size, position, size: the first size lets a window near the screen edge move, the second
-    // fixes the size if the move clamped it.
-    private func write(_ frame: CGRect, to element: AXUIElement) {
+    // fixes the size if the move clamped it. Stops at an invalid element, which takes no writes.
+    private func write(_ frame: CGRect, to element: AXUIElement) -> AXError {
         var size = frame.size, origin = frame.origin
         let sizeValue = AXValueCreate(.cgSize, &size)!, originValue = AXValueCreate(.cgPoint, &origin)!
-        AXUIElementSetAttributeValue(element, kAXSizeAttribute as CFString, sizeValue)
-        AXUIElementSetAttributeValue(element, kAXPositionAttribute as CFString, originValue)
-        AXUIElementSetAttributeValue(element, kAXSizeAttribute as CFString, sizeValue)
+        for (attribute, value) in [(kAXSizeAttribute, sizeValue), (kAXPositionAttribute, originValue), (kAXSizeAttribute, sizeValue)] {
+            let error = AXUIElementSetAttributeValue(element, attribute as CFString, value)
+            if error == .invalidUIElement { return error }
+        }
+        return .success
     }
 
-    private func move(_ origin: CGPoint, to element: AXUIElement) {
+    private func move(_ origin: CGPoint, to element: AXUIElement) -> AXError {
         var origin = origin
-        AXUIElementSetAttributeValue(element, kAXPositionAttribute as CFString, AXValueCreate(.cgPoint, &origin)!)
+        return AXUIElementSetAttributeValue(element, kAXPositionAttribute as CFString, AXValueCreate(.cgPoint, &origin)!)
     }
 
-    private func frame(_ element: AXUIElement) -> CGRect? {
+    private func frame(_ element: AXUIElement) -> (CGRect?, AXError) {
         var origin = CGPoint.zero, size = CGSize.zero
         var value: CFTypeRef?
-        guard AXUIElementCopyAttributeValue(element, kAXPositionAttribute as CFString, &value) == .success,
-              AXValueGetValue(value as! AXValue, .cgPoint, &origin),
-              AXUIElementCopyAttributeValue(element, kAXSizeAttribute as CFString, &value) == .success,
-              AXValueGetValue(value as! AXValue, .cgSize, &size) else { return nil }
-        return CGRect(origin: origin, size: size)
+        var error = AXUIElementCopyAttributeValue(element, kAXPositionAttribute as CFString, &value)
+        guard error == .success, AXValueGetValue(value as! AXValue, .cgPoint, &origin) else { return (nil, error) }
+        error = AXUIElementCopyAttributeValue(element, kAXSizeAttribute as CFString, &value)
+        guard error == .success, AXValueGetValue(value as! AXValue, .cgSize, &size) else { return (nil, error) }
+        return (CGRect(origin: origin, size: size), .success)
     }
 }
 
