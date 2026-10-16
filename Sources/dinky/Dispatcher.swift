@@ -190,12 +190,13 @@ enum Dispatcher {
 
     // MARK: Layout tree
 
-    /// Runs a change on the focused window's tree; `change` returns false when there was nothing to do.
+    /// Runs a change on the focused window's tree; `change` returns false when there was nothing to do, which
+    /// succeeds like `workspace N` on the workspace showing: the window is already where it was asked to go.
     private static func tree(_ name: String, _ change: (inout Workspace) -> Bool) -> Reply {
         guard let coordinator = AppState.shared.coordinator else { return .error("tiling is not running") }
         switch coordinator.command(change) {
         case nil: return .error("\(name): the focused window is not tiled")
-        case false?: return .error("\(name): nothing to do")
+        case false?: return .ok("\(name): nothing to do")
         case true?: return .ok(name)
         }
     }
