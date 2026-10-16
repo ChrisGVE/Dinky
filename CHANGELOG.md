@@ -25,6 +25,10 @@
 
 - New `[workspace.<number>.display.<pattern>]` tables give a workspace other settings while it is on one display, such as two fixed columns on an ultrawide and an accordion on the laptop screen. When you dock or undock, the workspace switches layout as it moves.
 
+### Hooks
+
+- New `display-changed` hook runs when a display connects or disconnects, once the workspaces have moved, with `DINKY_DISPLAYS` and `DINKY_PREV_DISPLAYS` set to how many displays there are now and were before. React to docking and undocking without Hammerspoon.
+
 ## 0.18
 
 ### Key bindings

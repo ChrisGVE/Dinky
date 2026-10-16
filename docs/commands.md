@@ -123,3 +123,17 @@ fires only for dinky's own switches, so draw the target there and the real
 state on `workspace-changed`, which always follows. `mode-changed` sets
 `DINKY_MODE` and `DINKY_PREV_MODE`; `dinky list-modes --current` prints the
 mode at any time. `exec-and-forget` has Homebrew on `PATH`.
+
+### Docking
+
+For a workspace's layout per display, use
+[`[workspace.<number>.display.<pattern>]`](configuration.md#workspacenumberdisplaypattern).
+For anything else, `display-changed` runs once the workspaces have moved after
+a display connects or disconnects. It sets `DINKY_DISPLAYS` and
+`DINKY_PREV_DISPLAYS`, the number of displays now and before;
+`dinky list-monitors` names them.
+
+```toml
+[hooks]
+display-changed = ['exec-and-forget [ "$DINKY_DISPLAYS" = 1 ] && ~/bin/laptop-mode.sh || ~/bin/desk-mode.sh']
+```
