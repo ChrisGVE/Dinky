@@ -82,6 +82,12 @@ static const uint8_t kEventDataFormatVersion = 2;
 static const double kMimiZoomDeltaY = 3.0;          // empirically required
 static const double kMimiPositionX = 0.1;           // empirically required
 static const double kMimiVelocity = 9999.0;         // high enough to skip the animation
+// The legacy swipe's velocity. At 200 or more macOS skips the animation and never tells the windows of the
+// Space it lands on that they are visible again, so apps that stop drawing while hidden, like Ghostty, stay
+// blank until something else brings them forward. At 100 a three-swipe switch only went two Spaces and lost
+// the update again; at 50 every single and back-to-back switch landed and updated, about 60-120 ms per swipe.
+// Measured on an Intel Mac with macOS 26.7.1.
+static const double kLegacyVelocity = 50.0;
 static const CFTimeInterval kMimiStepDelay = 0.03;  // mimi kMimiSpaceGestureProcessingDelay
 
 static int32_t fixed_1616(double value)
@@ -241,7 +247,7 @@ static bool legacy_post_swipe(double sign)
     CGEventSetIntegerValueField(event, kGestureHIDType, kHIDEventTypeDockSwipe);
     CGEventSetIntegerValueField(event, kGestureSwipeMotion, kGestureMotionHorizontal);
     CGEventSetDoubleValueField(event, kGestureSwipeProgress, sign);
-    CGEventSetDoubleValueField(event, kGestureSwipeVelocityX, sign * kMimiVelocity);
+    CGEventSetDoubleValueField(event, kGestureSwipeVelocityX, sign * kLegacyVelocity);
     CGEventSetIntegerValueField(event, kGesturePhase, kPhaseBegan);
     CGEventPost(kCGSessionEventTap, event);
     CGEventSetIntegerValueField(event, kGesturePhase, kPhaseEnded);
