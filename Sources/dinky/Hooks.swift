@@ -103,13 +103,15 @@ private func run(_ commands: [String], env: [String: String] = [:]) {
 }
 
 /// Starts a process without waiting for it. Its output goes to dinky's own stdout and stderr, the log.
-/// Homebrew's directories go first on PATH, since apps started from Finder lack them.
+/// dinky's own directory and Homebrew's go first on PATH, since apps started from Finder lack them, so scripts
+/// can call `dinky`.
 func exec(_ argv: [String], env: [String: String] = [:]) {
     let process = Process()
     process.executableURL = URL(fileURLWithPath: argv[0])
     process.arguments = Array(argv.dropFirst())
     var environment = ProcessInfo.processInfo.environment.merging(env) { _, new in new }
-    environment["PATH"] = "/opt/homebrew/bin:/opt/homebrew/sbin:" + (environment["PATH"] ?? "/usr/bin:/bin:/usr/sbin:/sbin")
+    let own = Bundle.main.executableURL?.deletingLastPathComponent().path ?? ""
+    environment["PATH"] = own + ":/opt/homebrew/bin:/opt/homebrew/sbin:" + (environment["PATH"] ?? "/usr/bin:/bin:/usr/sbin:/sbin")
     process.environment = environment
     process.standardInput = FileHandle.nullDevice
     do {

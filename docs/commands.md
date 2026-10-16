@@ -122,7 +122,7 @@ The workspace hooks set `DINKY_WORKSPACE` (empty on a full-screen Space),
 fires only for dinky's own switches, so draw the target there and the real
 state on `workspace-changed`, which always follows. `mode-changed` sets
 `DINKY_MODE` and `DINKY_PREV_MODE`; `dinky list-modes --current` prints the
-mode at any time. `exec-and-forget` has Homebrew on `PATH`.
+mode at any time. `exec-and-forget` has `dinky` and Homebrew on `PATH`.
 
 ### Docking
 

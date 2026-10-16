@@ -28,6 +28,7 @@
 ### Hooks
 
 - New `display-changed` hook runs when a display connects or disconnects, once the workspaces have moved, with `DINKY_DISPLAYS` and `DINKY_PREV_DISPLAYS` set to how many displays there are now and were before. React to docking and undocking without Hammerspoon.
+- `exec-and-forget` has `dinky` itself on `PATH`, so hook scripts can call `dinky` when the app was started from Finder.
 
 ## 0.18
 
