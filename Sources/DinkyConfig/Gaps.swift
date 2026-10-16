@@ -1,5 +1,5 @@
 // Gaps in points, the `[display.<pattern>]` tables that override them for one display, and the display
-// patterns those tables and `[workspace-to-display]` use.
+// patterns those tables, `[workspace.N.display.<pattern>]` and `[workspace-to-display]` use.
 
 /// The gap between side-by-side windows (`horizontal`) and between stacked ones (`vertical`).
 public struct Inner: Equatable {
@@ -106,6 +106,11 @@ public enum MonitorPattern: Equatable {
         case .name(let text): monitor.name.localizedCaseInsensitiveContains(text)
         }
     }
+
+    /// Name patterns beat `main` and `secondary`, longer names beat shorter.
+    var specificity: Int {
+        if case .name(let text) = self { text.count } else { -1 }
+    }
 }
 
 /// One `[display.<pattern>]` table: settings that replace the general ones on the displays the pattern matches.
@@ -129,10 +134,7 @@ extension Config {
     /// The display tables matching `monitor`, least specific first: `main` and `secondary`, then name
     /// patterns, shortest first, so applying them in order lets the most specific win.
     private func overrides(for monitor: Monitor) -> [DisplayOverride] {
-        func rank(_ override: DisplayOverride) -> Int {
-            if case .name(let text) = override.pattern { return text.count } else { return -1 }
-        }
-        return displays.filter { $0.pattern.matches(monitor) }.sorted { rank($0) < rank($1) }
+        displays.filter { $0.pattern.matches(monitor) }.sorted { $0.pattern.specificity < $1.pattern.specificity }
     }
 
     /// The gaps on `monitor`: the general ones, with the overrides of every matching display table applied.

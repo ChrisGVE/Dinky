@@ -105,6 +105,41 @@ struct ConfigTests {
         assertError("[workspace.2]\nlayout = 'fixed'\nexpand = 'diagonal'\n", path: "workspace.2.expand", line: 3, contains: "'rows', 'columns', 'accordion'")
     }
 
+    @Test func `Workspace settings per display`() throws {
+        let config = try Config.parse("""
+        [workspace.2]
+        layout = 'fixed'
+        columns = 2
+        [workspace.2.display.built-in]
+        layout = 'accordion'
+        [workspace.2.display.main]
+        rows = 2
+        [workspace.2.display.'Built-in Retina']
+        tiling = false
+        [workspace.3.display.secondary]
+        layout = 'scrolling'
+        """)
+        let ultrawide = Monitor(name: "DELL U3824DW", isMain: true, count: 2)
+        let laptop = Monitor(name: "Built-in Retina Display", isMain: false, count: 2)
+        let otherLaptop = Monitor(name: "Built-in Liquid Retina XDR Display", isMain: false, count: 2)
+        #expect(config.settings(forWorkspace: 2).layout == .fixed, "without a display, the workspace's own")
+        let main = config.settings(forWorkspace: 2, on: ultrawide)
+        #expect((main.layout, main.columns, main.rows) == (.fixed, 2, 2), "omitted keys come from the workspace")
+        #expect(config.settings(forWorkspace: 2, on: otherLaptop).layout == .accordion)
+        #expect(!config.settings(forWorkspace: 2, on: laptop).tiling, "the longest name wins")
+        #expect(config.settings(forWorkspace: 2, on: laptop).layout == .fixed, "and inherits from the workspace, not other displays")
+        #expect(config.settings(forWorkspace: 3, on: laptop).layout == .scrolling)
+        #expect(config.settings(forWorkspace: 3, on: ultrawide).layout == .tiles)
+        #expect(config.settings(forWorkspace: 1, on: laptop) == config.settings(forWorkspace: 1))
+        let ties = try Config.parse("[workspace.1.display.main]\nlayout = 'accordion'\n[workspace.1.display.secondary]\nlayout = 'fixed'\n")
+        #expect(ties.settings(forWorkspace: 1, on: Monitor(name: "x", isMain: true, count: 1)).layout == .accordion)
+        assertError("[workspace.2.display.main]\ncolumns = 2\n", path: "workspace.2.display.main.columns", line: 2, contains: "only valid")
+        assertError("[workspace.2.display.main]\ngaps.inner = 2\n", path: "workspace.2.display.main.gaps", line: 2, contains: "unknown key")
+        assertError("[workspace.2.display.main.display.dell]\nlayout = 'fixed'\n", path: "workspace.2.display.main.display",
+                    line: 1, contains: "unknown key")
+        assertError("[workspace.2.display.'']\nlayout = 'fixed'\n", path: "workspace.2.display", line: 1, contains: "can't be empty")
+    }
+
     @Test func `Unknown top-level key fails`() {
         assertError("workspaces = 3\ngap = 8\n", path: "gap", line: 2, contains: "unknown key")
         assertError("config-version = 1\n", path: "config-version", line: 1, contains: "unknown key")

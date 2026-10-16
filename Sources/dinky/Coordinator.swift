@@ -243,7 +243,8 @@ final class Coordinator {
         for (id, placement) in placements where placement.space == from { placements[id]!.space = to }
     }
 
-    /// Resolve layout settings by a Space's current numbered position, which can change when Spaces are reordered.
+    /// Resolve layout settings by a Space's current numbered position and display, which can change when Spaces
+    /// are reordered or displays come and go.
     private func configureWorkspaces() {
         for key in workspaces.keys {
             workspaces[key]!.accordionPadding = CGFloat(config.accordion.padding)
@@ -257,9 +258,10 @@ final class Coordinator {
         DinkyLayout.Gaps(config.gaps(for: displays.monitor(display)))
     }
 
-    /// The settings of the Space's workspace, by its current number.
+    /// The settings of the Space's workspace, by its current number, on the display it is on now.
     func settings(for space: UInt64) -> WorkspaceSettings {
-        config.settings(forWorkspace: AppState.shared.numbers.number(of: space))
+        config.settings(forWorkspace: AppState.shared.numbers.number(of: space),
+                        on: displays.display(containingSpace: space).map(displays.monitor))
     }
 
     func algorithm(_ settings: WorkspaceSettings) -> TilingAlgorithm {

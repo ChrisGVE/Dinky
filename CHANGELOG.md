@@ -21,6 +21,10 @@
 
 - New `app-id-regex` key matches a rule against the bundle ID by regex, like `app-name` does for the app's name: `app-id-regex = '^com\.jetbrains\.'` covers every JetBrains app with one rule. `app-id` still matches the bundle ID exactly.
 
+### Tiling
+
+- New `[workspace.<number>.display.<pattern>]` tables give a workspace other settings while it is on one display, such as two fixed columns on an ultrawide and an accordion on the laptop screen. When you dock or undock, the workspace switches layout as it moves.
+
 ## 0.18
 
 ### Key bindings

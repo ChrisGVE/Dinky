@@ -43,6 +43,11 @@
         "type": "object",
         "additionalProperties": false,
         "properties": {
+          "display": {
+            "type": "object",
+            "description": "This workspace's settings while it is on one display, keyed by pattern: main, secondary, or a case-insensitive part of the display's name. Omitted keys come from the workspace's own settings.",
+            "additionalProperties": { "$ref": "#/definitions/workspaceSettings" }
+          },
           "tiling": { "type": "boolean" },
           "layout": { "type": "string", "enum": ["tiles", "dwindle", "accordion", "fixed", "scrolling"] },
           "columns": { "type": "integer", "minimum": 1, "default": 1, "description": "Reserved columns for a fixed layout." },
@@ -288,6 +293,19 @@
         { "$ref": "#/definitions/command" },
         { "type": "array", "minItems": 1, "items": { "$ref": "#/definitions/command" } }
       ]
+    },
+    "workspaceSettings": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "tiling": { "type": "boolean" },
+        "layout": { "type": "string", "enum": ["tiles", "dwindle", "accordion", "fixed", "scrolling"] },
+        "columns": { "type": "integer", "minimum": 1, "default": 1, "description": "Reserved columns for a fixed layout." },
+        "rows": { "type": "integer", "minimum": 1, "default": 1, "description": "Reserved rows for a fixed layout." },
+        "expand": { "type": "string", "enum": ["columns", "rows", "accordion"], "default": "columns", "description": "Where overflow windows go when every fixed cell is full." }
+      },
+      "if": { "required": ["layout"], "properties": { "layout": { "enum": ["tiles", "dwindle", "accordion", "scrolling"] } } },
+      "then": { "not": { "anyOf": [ { "required": ["columns"] }, { "required": ["rows"] }, { "required": ["expand"] } ] } }
     },
     "hook": {
       "description": "A command or a list of commands, run in order. May be empty.",

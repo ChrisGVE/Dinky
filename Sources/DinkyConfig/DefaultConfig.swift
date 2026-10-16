@@ -24,6 +24,8 @@ extension Config {
     # columns = 2
     # rows = 3
     # expand = 'columns'           # columns | rows | accordion (overflow in last cell)
+    # [workspace.2.display.built-in]   # its settings while on the laptop screen
+    # layout = 'accordion'
 
     [accordion]
     padding = 30                    # points the neighbours peek out by

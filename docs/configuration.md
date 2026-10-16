@@ -78,6 +78,26 @@ app-id = 'com.mitchellh.ghostty'
 run = 'move-window-to-workspace 2'
 ```
 
+### `[workspace.<number>.display.<pattern>]`
+
+The workspace's settings while it is on one display, with the
+[display patterns](#workspace-to-display). It takes the same keys; the ones
+left out come from the workspace's own table. When several patterns match,
+the most specific wins, as in [`[display.<pattern>]`](#displaypattern).
+
+When a workspace moves to a display with other settings, as when you dock or
+undock, its tree is rebuilt once in the new layout, keeping the windows'
+order and focus.
+
+```toml
+[workspace.2]           # two columns on the ultrawide
+layout = 'fixed'
+columns = 2
+
+[workspace.2.display.built-in]   # an accordion on the laptop screen
+layout = 'accordion'
+```
+
 `rows`, `columns`, and `expand` are only allowed with a fixed layout; with any
 other they are a config error. `layout = 'accordion'`
 remains available; conceptually it resembles a 1×1 fixed template with accordion
@@ -174,7 +194,8 @@ own workspace once the displays settle.
 ## `[display.<pattern>]`
 
 Per-display `gaps`, with the patterns above. Name patterns beat
-`main`/`secondary`; longer names beat shorter.
+`main`/`secondary`; longer names beat shorter. A workspace's layout per display
+goes in [`[workspace.<number>.display.<pattern>]`](#workspacenumberdisplaypattern).
 
 ```toml
 [display.main]          # the display with the bar
@@ -352,6 +373,8 @@ float-windows-without-fullscreen = true   # progress windows, About, Calculator 
 # columns = 2
 # rows = 3
 # expand = 'columns'           # columns | rows | accordion (overflow in last cell)
+# [workspace.2.display.built-in]   # its settings while on the laptop screen
+# layout = 'accordion'
 
 [accordion]
 padding = 30                    # points the neighbours peek out by

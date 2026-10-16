@@ -102,7 +102,7 @@ public struct Config: Equatable {
                     throw ConfigError(path: workspacesTable.path(number), "expected a positive workspace number")
                 }
                 workspaceLayouts[index] = try WorkspaceSettings(workspacesTable.table(number)!,
-                                                                tiling: defaultTiling, layout: defaultLayout)
+                                                                base: WorkspaceSettings(tiling: defaultTiling, layout: defaultLayout))
             }
         }
         followAppActivation = try t.bool("follow-app-activation") ?? followAppActivation
@@ -139,41 +139,69 @@ public enum ExpansionKind: String, CaseIterable {
     case rows, columns, accordion
 }
 
-/// A workspace's tiling settings: a `[workspace.N]` table with omitted keys taken from the top-level settings.
+/// A workspace's tiling settings: a `[workspace.N]` table with omitted keys taken from the top-level settings,
+/// or a `[workspace.N.display.<pattern>]` table with omitted keys taken from its workspace's.
 public struct WorkspaceSettings: Equatable {
     public var tiling: Bool
     public var layout: LayoutKind
     public var rows = 1
     public var columns = 1
     public var expand = ExpansionKind.columns
+    /// `[workspace.N.display.<pattern>]`: the settings that replace these on the displays a pattern matches,
+    /// in file order.
+    public var displays: [WorkspaceOnDisplay] = []
 
     public init(tiling: Bool, layout: LayoutKind) {
         self.tiling = tiling
         self.layout = layout
     }
 
-    init(_ t: Table, tiling: Bool, layout: LayoutKind) throws {
-        self.tiling = try t.bool("tiling") ?? tiling
-        self.layout = try t.choice("layout") ?? layout
+    /// Display tables are read only in a workspace's own table, not nested in one another.
+    init(_ t: Table, base: WorkspaceSettings, readsDisplays: Bool = true) throws {
+        self = base
+        displays = []
+        tiling = try t.bool("tiling") ?? tiling
+        layout = try t.choice("layout") ?? layout
         let columns: Int? = try t.int("columns")
         let rows: Int? = try t.int("rows")
         let expand: ExpansionKind? = try t.choice("expand")
         if let columns, columns < 1 { throw ConfigError(path: t.path("columns"), "must be at least 1") }
         if let rows, rows < 1 { throw ConfigError(path: t.path("rows"), "must be at least 1") }
-        try t.done()
-        if self.layout != .fixed, let key = columns != nil ? "columns" : rows != nil ? "rows" : expand != nil ? "expand" : nil {
+        if layout != .fixed, let key = columns != nil ? "columns" : rows != nil ? "rows" : expand != nil ? "expand" : nil {
             throw ConfigError(path: t.path(key), "only valid for a fixed layout")
         }
         self.rows = rows ?? self.rows
         self.columns = columns ?? self.columns
         self.expand = expand ?? self.expand
+        if readsDisplays, let displayTable = try t.table("display") {
+            for pattern in displayTable.keys {
+                guard !pattern.isEmpty else { throw ConfigError(path: displayTable.path, "a display pattern can't be empty") }
+                let settings = try WorkspaceSettings(displayTable.table(pattern)!, base: self, readsDisplays: false)
+                displays.append(WorkspaceOnDisplay(pattern: MonitorPattern(pattern), settings: settings))
+            }
+        }
+        try t.done()
     }
 }
 
+/// One `[workspace.N.display.<pattern>]` table.
+public struct WorkspaceOnDisplay: Equatable {
+    public var pattern: MonitorPattern
+    public var settings: WorkspaceSettings
+}
+
 extension Config {
-    /// The settings of the workspace with this number, the top-level ones for an unnumbered workspace.
-    public func settings(forWorkspace number: Int?) -> WorkspaceSettings {
-        number.flatMap { workspaceLayouts[$0] } ?? WorkspaceSettings(tiling: defaultTiling, layout: defaultLayout)
+    /// The settings of the workspace with this number, the top-level ones for an unnumbered workspace. On
+    /// `monitor`, the workspace's most specific matching display table replaces them, the last of equals winning.
+    public func settings(forWorkspace number: Int?, on monitor: Monitor? = nil) -> WorkspaceSettings {
+        let settings = number.flatMap { workspaceLayouts[$0] } ?? WorkspaceSettings(tiling: defaultTiling, layout: defaultLayout)
+        guard let monitor else { return settings }
+        var best: WorkspaceOnDisplay?
+        for display in settings.displays where display.pattern.matches(monitor)
+            && display.pattern.specificity >= best?.pattern.specificity ?? .min {
+            best = display
+        }
+        return best?.settings ?? settings
     }
 }
 
@@ -327,6 +355,8 @@ public struct Hooks: Equatable {
     public var focusChanged: [String] = []
     /// When the binding mode changes.
     public var modeChanged: [String] = []
+    /// When a display connects or disconnects.
+    public var displayChanged: [String] = []
 
     public init() {}
 

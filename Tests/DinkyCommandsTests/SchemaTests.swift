@@ -65,6 +65,13 @@ struct SchemaTests {
         rows = 2
         expand = 'rows'
 
+        [workspace.2.display.built-in]
+        tiling = true
+        layout = 'fixed'
+        columns = 1
+        rows = 1
+        expand = 'accordion'
+
         [accordion]
         padding = 20
         orientation = 'keep'
