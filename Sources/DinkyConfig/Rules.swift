@@ -1,9 +1,11 @@
 import Foundation
 
 /// One `[[rules]]` entry: when a new window matches every condition that is set, run the commands.
-/// `app-name` and `title` are case-insensitive regexes found anywhere in the text.
+/// `app-id` is an exact bundle ID; `app-id-regex`, `app-name` and `title` are case-insensitive
+/// regexes found anywhere in the text.
 public struct WindowRule: Equatable {
     public var appId: String?
+    public var appIdRegex: String?
     public var appName: String?
     public var title: String?
     public var kind: WindowKind?
@@ -13,6 +15,7 @@ public struct WindowRule: Equatable {
 
     init(_ t: Table) throws {
         appId = try t.string("app-id")
+        appIdRegex = try regex(t, "app-id-regex")
         appName = try regex(t, "app-name")
         title = try regex(t, "title")
         kind = try t.choice("kind")
@@ -28,7 +31,7 @@ public struct WindowRule: Equatable {
             return text?.range(of: pattern, options: [.regularExpression, .caseInsensitive]) != nil
         }
         return (self.appId == nil || self.appId == appId) && (self.kind == nil || self.kind == kind)
-            && search(self.appName, appName) && search(self.title, title)
+            && search(appIdRegex, appId) && search(self.appName, appName) && search(self.title, title)
     }
 }
 

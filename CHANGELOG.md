@@ -10,6 +10,10 @@
 
 - `hyper` and `meh` name the usual modifier combinations in bindings: `hyper-1` is `alt-ctrl-cmd-shift-1`, and `meh-1` is `alt-ctrl-shift-1`.
 
+### Rules
+
+- New `app-id-regex` key matches a rule against the bundle ID by regex, like `app-name` does for the app's name: `app-id-regex = '^com\.jetbrains\.'` covers every JetBrains app with one rule. `app-id` still matches the bundle ID exactly.
+
 ## 0.18
 
 ### Key bindings
