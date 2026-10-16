@@ -219,11 +219,16 @@ gaps.outer.top = 44
 
 </div>
 
+Changes to a hidden workspace are placed without gliding when you next show it,
+including when you follow a window with `move-window-to-workspace --follow`.
+
 ## `[drag]`
 
 Drag a tiled window's edge to resize it; the other tiles make room, and in the
 scrolling layout its column takes the new width. Drag the window itself and
 drop it on another tile to swap the two; dropped anywhere else, it goes back.
+While dinky is off, dragging neither swaps nor resizes tiles and shows no drop
+outlines.
 
 <div class="wide-table" markdown="1">
 
