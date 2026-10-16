@@ -14,6 +14,8 @@
 
 - New `app-id-regex` key matches a rule against the bundle ID by regex, like `app-name` does for the app's name: `app-id-regex = '^com\.jetbrains\.'` covers every JetBrains app with one rule. `app-id` still matches the bundle ID exactly.
 
+- A `layout` command keeps a `fixed` workspace's template when it leaves its shape alone, such as one that changes nothing or turns the overflow accordion vertical. Before, the reserved empty cells disappeared and later windows no longer filled the grid.
+
 ## 0.18
 
 ### Key bindings
