@@ -21,10 +21,13 @@ final class FrameApplier {
     /// Application Support, so the write-settle-retry chain that discovers a minimum runs once per app ever.
     private var appMinimums: [String: CGSize] = [:]
     private let raiseQueue = DispatchQueue(label: "dinky.frames.raise")
-    private static let minimumsURL = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
-        .appendingPathComponent("dinky/minimum-sizes.json")
+    private static let supportURL = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+        .appendingPathComponent("dinky")
+    private static let minimumsURL = supportURL.appendingPathComponent("learned-minimum-sizes.json")
 
     init() {
+        // Saved before minimums needed two different sizes asked: Terminal's grid could pass for one there.
+        try? FileManager.default.removeItem(at: Self.supportURL.appendingPathComponent("minimum-sizes.json"))
         appMinimums = Self.loadMinimums()
         scheduler = FrameScheduler(
             prepare: { pid in
@@ -41,9 +44,6 @@ final class FrameApplier {
 
     /// Sizes windows refused to shrink below, from readback.
     var minimumSizes: [WindowID: CGSize] { scheduler.minimumSizes }
-
-    /// Windows that refused a size once, waiting for another pass to confirm it.
-    var unconfirmedMinimums: Set<WindowID> { scheduler.unconfirmedMinimums }
 
     /// The size a window refused to shrink below or, if it has refused nothing yet, the largest any window of its
     /// app has refused, so a new window of a known app is laid out right the first time.

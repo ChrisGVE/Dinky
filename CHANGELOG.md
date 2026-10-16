@@ -6,6 +6,7 @@
 
 - Intel Macs are no longer offered dinky releases they can't run. The update feed and the Homebrew cask now say a release needs Apple silicon, so a dinky built from source on an Intel Mac doesn't offer to update itself to one, and `brew install` stops with a clear message. Before, both went ahead and left an app that doesn't start.
 - A `layout` command keeps a `fixed` workspace's template when it leaves its shape alone, such as one that changes nothing or turns the overflow accordion vertical. Before, the reserved empty cells disappeared and later windows no longer filled the grid.
+- Terminal windows shrink again. Terminal sizes its windows in whole rows and columns, so it never lands exactly on its tile, and dinky took that miss for a minimum size, saved it, and kept raising it until `resize smart -50` had nothing to do. Now a size only counts as a minimum when the window comes back at it for two different sizes asked. Minimum sizes saved by earlier versions are forgotten once, since some were really Terminal's grid.
 
 ### Key bindings
 
