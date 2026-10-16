@@ -5,6 +5,7 @@
 ### Fixes
 
 - Intel Macs are no longer offered dinky releases they can't run. The update feed and the Homebrew cask now say a release needs Apple silicon, so a dinky built from source on an Intel Mac doesn't offer to update itself to one, and `brew install` stops with a clear message. Before, both went ahead and left an app that doesn't start.
+- `move`, `join-with` and `resize` succeed when there is nothing to do, such as `move left` on a window already at the left edge: the CLI prints `move left: nothing to do` and exits 0. Before, they replied with an error, so launchers like LeaderKey showed an error popup.
 - A `layout` command keeps a `fixed` workspace's template when it leaves its shape alone, such as one that changes nothing or turns the overflow accordion vertical. Before, the reserved empty cells disappeared and later windows no longer filled the grid.
 
 ### Key bindings
