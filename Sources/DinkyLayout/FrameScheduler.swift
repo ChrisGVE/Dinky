@@ -47,8 +47,8 @@ public final class FrameScheduler: @unchecked Sendable {
     private let lock = NSLock()
     private var apps: [Int32: App] = [:]
     private var minimums: [WindowID: CGSize] = [:]
-    /// Refusals seen once, by window: a minimum only when a later pass sees the same one.
-    private var candidates: [WindowID: CGSize] = [:]
+    /// The last refusal of each window: a minimum once a pass asking for another size sees the same one.
+    private var candidates: [WindowID: Refusal] = [:]
     /// Bumped by `cancel`; writes queued under an older generation are dropped.
     private var generation = 0
 
@@ -64,11 +64,9 @@ public final class FrameScheduler: @unchecked Sendable {
         self.move = move ?? write
     }
 
-    /// Sizes windows refused to go below, seen the same on two passes. Only dimensions that were refused are set.
+    /// Sizes windows refused to go below, the same for two different sizes asked. Only dimensions that were
+    /// refused are set.
     public var minimumSizes: [WindowID: CGSize] { lock.withLock { minimums } }
-
-    /// Windows that refused a size once and wait for a second pass to tell a minimum from an app catching up.
-    public var unconfirmedMinimums: Set<WindowID> { lock.withLock { Set(candidates.keys) } }
 
     /// Queue frames. `completion` gets the results of every process queue these jobs went to,
     /// once each has written them (or newer frames for the same windows).
@@ -115,7 +113,7 @@ public final class FrameScheduler: @unchecked Sendable {
         app.queue.async { self.drain(app) }
     }
 
-    /// Forgets a window that is gone: its minimum size, any refusal waiting to be confirmed, and what steps wrote.
+    /// Forgets a window that is gone: its minimum size, its last refusal, and what steps wrote.
     /// Window ids are reused, so a new window must not inherit them.
     public func forget(_ id: WindowID) {
         lock.withLock {
@@ -203,26 +201,46 @@ public final class FrameScheduler: @unchecked Sendable {
     }
 
     /// A window that came back larger than asked, where it was put, may have a minimum size in that dimension. It
-    /// counts once a later pass sees the same refusal: an app still resizing to an earlier size (Ghostty reflowing,
-    /// an Electron app, or a size an animation step asked for) has caught up by then. A window somewhere else has
-    /// left (native full screen, another Space) and says nothing about how small it can be.
+    /// counts once a pass asking for a different size gets the same size back. Asking the same size again proves
+    /// nothing: an app that snaps to a grid (Terminal's rows and columns) misses the same way every time, but a
+    /// smaller ask snaps smaller, while a real minimum comes back unchanged. An app still resizing to an earlier
+    /// size (Ghostty reflowing, an Electron app, or a size an animation step asked for) has caught up by the later
+    /// pass. A window somewhere else has left (native full screen, another Space) and says nothing about how small
+    /// it can be.
     private func recordMinimum(_ result: FrameResult, stepSizes: Set<CGSize>) {
         let id = result.job.id
         guard let got = result.got else { return }
         guard abs(got.minX - result.job.frame.minX) <= 2, abs(got.minY - result.job.frame.minY) <= 2,
               !stepSizes.contains(got.size) else { return lock.withLock { candidates[id] = nil } }
-        let wanted = result.job.frame.size
-        let refused = CGSize(width: got.width > wanted.width + 2 ? got.width : 0,
-                             height: got.height > wanted.height + 2 ? got.height : 0)
+        let refusal = Refusal(asked: result.job.frame.size, got: got.size)
         lock.withLock {
-            let seen = candidates[id] ?? .zero
-            candidates[id] = refused == .zero ? nil : refused
-            let confirmed = CGSize(width: refused.width > 0 && abs(refused.width - seen.width) <= 2 ? refused.width : 0,
-                                   height: refused.height > 0 && abs(refused.height - seen.height) <= 2 ? refused.height : 0)
-            if confirmed != .zero {
-                minimums[id] = minimums[id]?.grown(to: confirmed) ?? confirmed
-                candidates[id] = nil
+            if let seen = candidates[id] {
+                let confirmed = refusal.confirms(seen)
+                if confirmed != .zero { minimums[id] = minimums[id]?.grown(to: confirmed) ?? confirmed }
             }
+            candidates[id] = refusal.got == .zero ? nil : refusal
+        }
+    }
+
+    /// The size a window was asked for and the size it came back at, in the dimensions where it came back more
+    /// than 2 pt larger. Others are zero.
+    private struct Refusal {
+        var asked = CGSize.zero
+        var got = CGSize.zero
+
+        init(asked: CGSize, got: CGSize) {
+            if got.width > asked.width + 2 { self.asked.width = asked.width; self.got.width = got.width }
+            if got.height > asked.height + 2 { self.asked.height = asked.height; self.got.height = got.height }
+        }
+
+        /// The minimum this and an earlier refusal show: each dimension both refused, at sizes asked more than
+        /// 2 pt apart, coming back within 2 pt of each other.
+        func confirms(_ earlier: Refusal) -> CGSize {
+            func minimum(_ asked: CGFloat, _ got: CGFloat, _ askedBefore: CGFloat, _ gotBefore: CGFloat) -> CGFloat {
+                got > 0 && gotBefore > 0 && abs(got - gotBefore) <= 2 && abs(asked - askedBefore) > 2 ? max(got, gotBefore) : 0
+            }
+            return CGSize(width: minimum(asked.width, got.width, earlier.asked.width, earlier.got.width),
+                          height: minimum(asked.height, got.height, earlier.asked.height, earlier.got.height))
         }
     }
 
