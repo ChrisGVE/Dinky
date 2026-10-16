@@ -5,6 +5,7 @@
 ### Fixes
 
 - Intel Macs are no longer offered dinky releases they can't run. The update feed and the Homebrew cask now say a release needs Apple silicon, so a dinky built from source on an Intel Mac doesn't offer to update itself to one, and `brew install` stops with a clear message. Before, both went ahead and left an app that doesn't start.
+- A `layout` command keeps a `fixed` workspace's template when it leaves its shape alone, such as one that changes nothing or turns the overflow accordion vertical. Before, the reserved empty cells disappeared and later windows no longer filled the grid.
 
 ### Key bindings
 
@@ -13,8 +14,6 @@
 ### Rules
 
 - New `app-id-regex` key matches a rule against the bundle ID by regex, like `app-name` does for the app's name: `app-id-regex = '^com\.jetbrains\.'` covers every JetBrains app with one rule. `app-id` still matches the bundle ID exactly.
-
-- A `layout` command keeps a `fixed` workspace's template when it leaves its shape alone, such as one that changes nothing or turns the overflow accordion vertical. Before, the reserved empty cells disappeared and later windows no longer filled the grid.
 
 ## 0.18
 
