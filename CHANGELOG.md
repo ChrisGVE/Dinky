@@ -2,33 +2,33 @@
 
 ## Unreleased
 
-### Fixes
-
-- Turning dinky off takes its borders away and leaves window drags alone. Before, the borders stayed on, trailing behind a dragged window and slowing everything down, and dragging a window still outlined the tile it would swap with, swapping them once dinky was back on.
-- Dragging a window is much lighter, so the drag stays smooth and its border keeps up more closely, and windows gliding to their tiles cost less too. Before, every step of a drag had dinky re-read the whole window, restack its border and redraw the drop outlines, which could slow everything down.
-- Switching workspaces is lighter and no longer sets windows gliding. Before, every switch re-read every window on every workspace and asked each app on the workspace you arrived at where its windows were, a burst of work that grew with the number of windows open, and windows a little off their tiles glided there as you arrived. Now a switch reads only the windows of the workspace you arrive at, and lays it out only when something changed there while you were away. Then the windows are in place when the workspace shows, without gliding.
-- Intel Macs are no longer offered dinky releases they can't run. The update feed and the Homebrew cask now say a release needs Apple silicon, so a dinky built from source on an Intel Mac doesn't offer to update itself to one, and `brew install` stops with a clear message. Before, both went ahead and left an app that doesn't start.
-- `move`, `join-with` and `resize` succeed when there is nothing to do, such as `move left` on a window already at the left edge: the CLI prints `move left: nothing to do` and exits 0. Before, they replied with an error, so launchers like LeaderKey showed an error popup.
-- A `layout` command keeps a `fixed` workspace's template when it leaves its shape alone, such as one that changes nothing or turns the overflow accordion vertical. Before, the reserved empty cells disappeared and later windows no longer filled the grid.
-- dinky keeps tiling a window after its app closes and reopens it, as Slack does when you close its window with Cmd-W and open it again from the Dock. Before, dinky silently stopped moving or resizing that window until the app was quit and relaunched.
-- Terminal windows shrink again. Terminal sizes its windows in whole rows and columns, so it never lands exactly on its tile, and dinky took that miss for a minimum size, saved it, and kept raising it until `resize smart -50` had nothing to do. Now a size only counts as a minimum when the window comes back at it for two different sizes asked. Minimum sizes saved by earlier versions are forgotten once, since some were really Terminal's grid.
-
-### Key bindings
-
-- `hyper` and `meh` name the usual modifier combinations in bindings: `hyper-1` is `alt-ctrl-cmd-shift-1`, and `meh-1` is `alt-ctrl-shift-1`.
-
-### Rules
-
-- New `app-id-regex` key matches a rule against the bundle ID by regex, like `app-name` does for the app's name: `app-id-regex = '^com\.jetbrains\.'` covers every JetBrains app with one rule. `app-id` still matches the bundle ID exactly.
-
 ### Tiling
 
 - New `[workspace.<number>.display.<pattern>]` tables give a workspace other settings while it is on one display, such as two fixed columns on an ultrawide and an accordion on the laptop screen. When you dock or undock, the workspace switches layout as it moves.
+- Switching workspaces is lighter and no longer sets windows gliding. A switch reads only the workspace you arrive at and lays it out only if something changed there while you were away, so its windows are in place as it shows.
+- Dragging a window is lighter, so the drag stays smooth and its border keeps up.
+
+### Key bindings
+
+- `hyper` and `meh` name the usual modifier combinations: `hyper-1` is `alt-ctrl-cmd-shift-1`, and `meh-1` is `alt-ctrl-shift-1`.
+
+### Rules
+
+- New `app-id-regex` key matches the bundle ID by regex, like `app-name` does for the app's name: `app-id-regex = '^com\.jetbrains\.'` covers every JetBrains app with one rule. `app-id` still matches exactly.
 
 ### Hooks
 
 - New `display-changed` hook runs when a display connects or disconnects, once the workspaces have moved, with `DINKY_DISPLAYS` and `DINKY_PREV_DISPLAYS` set to how many displays there are now and were before. React to docking and undocking without Hammerspoon.
 - `exec-and-forget` has `dinky` itself on `PATH`, so hook scripts can call `dinky` when the app was started from Finder.
+
+### Fixes
+
+- Turning dinky off takes its borders away and leaves window drags alone: no drop outlines, and no swap or resize remembered for when it comes back on.
+- dinky keeps tiling a window after its app closes and reopens it, as Slack does when you close its window with Cmd-W and open it again from the Dock.
+- Terminal windows shrink again. Terminal sizes its windows in whole rows and columns, so it never lands exactly on its tile; a size now counts as a minimum only when the window comes back at it for two different sizes asked, so that miss no longer passes for one. Minimum sizes saved by earlier versions are forgotten once.
+- `move`, `join-with` and `resize` succeed when there is nothing to do, such as `move left` on a window already at the left edge: the CLI prints `move left: nothing to do` and exits 0, so launchers like LeaderKey show no error.
+- A `layout` command keeps a `fixed` workspace's template when it leaves its shape alone, such as one that changes nothing or turns the overflow accordion vertical, so later windows still fill the grid.
+- Releases say they need Apple silicon, so a dinky built from source on an Intel Mac doesn't offer to update itself to one, and `brew install` stops with a clear message.
 
 ## 0.18
 
