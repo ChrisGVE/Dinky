@@ -47,6 +47,7 @@
 - The workflow that publishes the website runs its actions pinned to commits instead of movable tags.
 - The fuzzer reports an app that died or stopped answering as a violation, with the seed and step, instead of ending in a traceback or hanging.
 - The code that picks a workspace's layout algorithm from its settings moved onto `WorkspaceSettings`. Nothing changes in use.
+- A dinky built from source on an Intel Mac neither checks for updates nor shows Check for Updates in its menu. Releases run only on Apple silicon, so there is no update it could install.
 
 ## 0.19
 
