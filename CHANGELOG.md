@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### Fixes
+
+- Switching to an empty workspace stays there with app activation following on. Before, on a Mac where the switch took longer than 300 ms to land, such as an Intel Mac before macOS 27, Finder's activation on arrival was taken for one you asked for, and dinky followed it straight back to the workspace you left.
+
 ## 0.19
 
 ### Tiling
