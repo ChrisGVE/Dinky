@@ -5,6 +5,10 @@
 ### Fixes
 
 - A browser's picture-in-picture window no longer takes dinky's focus (#13). Chromium browsers keep it above every other window and tag it like a document window, so once it was open, dinky took it for the focused one, and `focus` answered "no focused window" until it was closed. Windows above the normal level are now passed over: focus stays with the tiled window beneath, and `focus left` and friends work with the video playing.
+- A `dinky.toml` that is a symlink to a missing file, such as one into a dotfiles checkout not cloned yet, stays a symlink. Before, dinky replaced it with the default config at launch.
+- A `dinky.toml` that is a symlink reloads when the link itself is replaced, as `ln -sf` or a dotfiles tool does it. Before, dinky went on watching the file the old link pointed to.
+- Saving `dinky.toml` reloads it promptly even while other files in its folder keep changing. Before, a change to any file in the folder pushed the reload back, so a busy folder could hold it off for as long as it stayed busy.
+- dinky stops watching the config for good when it stops. Before, a watch stopped while `dinky.toml` was missing came back once the file appeared, and reported a reload.
 
 ## 0.19
 
