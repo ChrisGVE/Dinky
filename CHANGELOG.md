@@ -10,6 +10,7 @@
 
 ### Fixes
 
+- Switching to an empty workspace stays there with app activation following on. Before, on a Mac where the switch took longer than 300 ms to land, such as an Intel Mac before macOS 27, Finder's activation on arrival was taken for one you asked for, and dinky followed it straight back to the workspace you left.
 - Resizing with the keyboard leaves a window alone when it shares its container with ten or more others, as after `flatten-workspace-tree` with eleven windows. Before, growing it made it vanish.
 - `join-with left` and `right` in the scrolling layout put a window into the neighbouring column even when it sits side by side with another inside its column. Before, it joined that other window instead.
 - The config rejects negative gaps and accordion padding, border widths that are negative, `inf` or `nan`, and workspace numbers written as `01` or `+1` in `[workspace-to-display]`. Before, they were accepted, and `01` and `1` silently overrode each other.
