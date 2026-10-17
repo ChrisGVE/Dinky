@@ -39,7 +39,7 @@
 - `dinky doctor` warns about a `[workspace.<number>]` table past the last workspace. Before, nothing said the table did nothing.
 - Overlapping windows, as in an accordion, end up in the stacking order of the latest arrangement when an app is slow to answer. Before, an earlier arrangement that waited on that app could raise its windows last, putting the old order back.
 - dinky checks the answers to its display and window queries before using them. When displays share one set of Spaces and one goes away, macOS can answer with nothing, which would have crashed dinky. No such crash has been seen; this is a guard.
-- On macOS before 27, apps that stop drawing while hidden, like Ghostty, show their content after a workspace switch. Before, the switch skipped macOS's animation, so their windows were never told they were visible again and showed only their border until Cmd-Tab or Show Desktop.
+- On macOS before 27, apps that stop drawing while hidden, like Ghostty, show their content after a workspace switch. Before, the switch skipped macOS's animation, so their windows were never told they were visible again and showed only their border until Cmd-Tab or Show Desktop. A switch across several workspaces plays the animation once, for the last step.
 
 ### Other
 
