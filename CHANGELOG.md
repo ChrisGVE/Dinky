@@ -5,6 +5,7 @@
 ### Fixes
 
 - A browser's picture-in-picture window no longer takes dinky's focus (#13). Chromium browsers keep it above every other window and tag it like a document window, so once it was open, dinky took it for the focused one, and `focus` answered "no focused window" until it was closed. Windows above the normal level are now passed over: focus stays with the tiled window beneath, and `focus left` and friends work with the video playing.
+- Switching to an empty workspace stays there with app activation following on. Before, on a Mac where the switch took longer than 300 ms to land, such as an Intel Mac before macOS 27, Finder's activation on arrival was taken for one you asked for, and dinky followed it straight back to the workspace you left.
 
 ## 0.19
 
