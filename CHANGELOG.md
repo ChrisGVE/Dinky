@@ -5,7 +5,7 @@
 ### Fixes
 
 - A browser's picture-in-picture window no longer takes dinky's focus (#13). Chromium browsers keep it above every other window and tag it like a document window, so once it was open, dinky took it for the focused one, and `focus` answered "no focused window" until it was closed. Windows above the normal level are now passed over: focus stays with the tiled window beneath, and `focus left` and friends work with the video playing.
-- On macOS before 27, apps that stop drawing while hidden, like Ghostty, show their content after a workspace switch. Before, the switch skipped macOS's animation, so their windows were never told they were visible again and showed only their border until Cmd-Tab or Show Desktop.
+- On macOS before 27, apps that stop drawing while hidden, like Ghostty, show their content after a workspace switch. Before, the switch skipped macOS's animation, so their windows were never told they were visible again and showed only their border until Cmd-Tab or Show Desktop. A switch across several workspaces plays the animation once, for the last step.
 
 ## 0.19
 
