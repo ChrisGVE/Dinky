@@ -5,6 +5,13 @@
 ### Fixes
 
 - A browser's picture-in-picture window no longer takes dinky's focus (#13). Chromium browsers keep it above every other window and tag it like a document window, so once it was open, dinky took it for the focused one, and `focus` answered "no focused window" until it was closed. Windows above the normal level are now passed over: focus stays with the tiled window beneath, and `focus left` and friends work with the video playing.
+- Disabled dinky leaves windows and Spaces alone. Before, while off it still ran `[[rules]]` on new windows, moved new windows to the focused display, and rearranged workspaces on a config reload or display change. A `dinky enable off` sent before Accessibility was granted no longer gets lost either.
+- dinky started disabled, as after a `dinky enable off` sent before Accessibility was granted, leaves windows where they are when it quits. Before, it put them back where they were when Accessibility was granted, undoing whatever you had moved since.
+- Disabling, quitting and `dinky recover` put windows back where they were when dinky launched. Before, the frames recorded as the originals could already be the tiled ones, so restoring left windows tiled.
+- A window that could not be put back, because its display was unplugged or its app did not answer, stays journaled, so the next disable, quit or `dinky recover` tries it again, unless you move it by hand in the meantime: then it stays where you put it. Before, it was forgotten after the first try.
+- One app that stops responding while windows are being put back no longer spoils the report for the others. Before, every window counted as not restored when any app took longer than 3 seconds.
+- Windows moved since a display was plugged in or out stay where you put them. Before, when arranging the workspaces right after the display change stopped short, a later config reload sent windows back to where they had been before that change.
+- Turning dinky back on leaves windows where you put them after a display was plugged in or out while it was off. Before, enabling it, hours later perhaps, sent them back to where they were before the display change.
 
 ## 0.19
 
