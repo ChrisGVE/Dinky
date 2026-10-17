@@ -5,6 +5,11 @@
 ### Fixes
 
 - A browser's picture-in-picture window no longer takes dinky's focus (#13). Chromium browsers keep it above every other window and tag it like a document window, so once it was open, dinky took it for the focused one, and `focus` answered "no focused window" until it was closed. Windows above the normal level are now passed over: focus stays with the tiled window beneath, and `focus left` and friends work with the video playing.
+- A frontmost app that stops responding no longer stalls typing everywhere. Before, dinky asked it for its focused window twice a second with no time limit, on the thread that also handles key bindings.
+- Reading whether a new window's fullscreen button is enabled gives up after a second, like every other question dinky asks an app. Before, an app that stopped responding could hold dinky up for 6 seconds there.
+- dinky lets go of what it keeps for each app once the app quits. Before, it kept it for as long as it ran, and an app that later started with a quit app's process ID was taken as already set up, so its Enhanced UI and time limit were left as they were. Process IDs are rarely reused, so this was hard to hit.
+- An app that stops responding no longer holds up the next arrangement, or disabling and quitting dinky. Before, raising its windows into their stacking order blocked for seconds, and everything waiting on that arrangement waited too.
+- Overlapping windows, as in an accordion, end up in the stacking order of the latest arrangement when an app is slow to answer. Before, an earlier arrangement that waited on that app could raise its windows last, putting the old order back.
 
 ## 0.19
 
