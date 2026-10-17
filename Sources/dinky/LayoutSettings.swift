@@ -3,8 +3,8 @@ import DinkyLayout
 
 // How a workspace's settings in the config map onto the layout engine.
 extension WorkspaceSettings {
-    /// The tiling algorithm the settings ask for.
-    var algorithm: TilingAlgorithm {
+    /// The tiling algorithm the settings ask for, a master layout's side taken from `master`.
+    func algorithm(_ master: Master) -> TilingAlgorithm {
         let expand: FixedExpansion = switch self.expand {
         case .rows: .rows
         case .columns: .columns
@@ -15,6 +15,7 @@ extension WorkspaceSettings {
         case .accordion: .dwindle(.accordion)
         case .fixed: .fixed(rows: rows, columns: columns, expand: expand)
         case .scrolling: .scrolling
+        case .master: .master(master.orientation == .left ? .left : .right)
         }
     }
 }
