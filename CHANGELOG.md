@@ -1,5 +1,17 @@
 # Changelog
 
+## Unreleased
+
+### Fixes
+
+- The config rejects negative gaps and accordion padding, border widths that are negative, `inf` or `nan`, and workspace numbers written as `01` or `+1` in `[workspace-to-display]`. Before, they were accepted, and `01` and `1` silently overrode each other.
+- `dinky doctor` warns about a `[workspace.<number>]` table past the last workspace. Before, nothing said the table did nothing.
+
+### Other
+
+- The configuration reference says which values the config accepts: gaps, accordion padding and border width of 0 or more, and workspace numbers from 1 to `workspaces` in `[workspace-to-display]`.
+- A test checks that the configuration page shows the same default config dinky writes on first run.
+
 ## 0.19
 
 ### Tiling
