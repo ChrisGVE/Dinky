@@ -1,5 +1,47 @@
 # Changelog
 
+## Unreleased
+
+### Fixes
+
+- Resizing with the keyboard leaves a window alone when it shares its container with ten or more others, as after `flatten-workspace-tree` with eleven windows. Before, growing it made it vanish.
+- `join-with left` and `right` in the scrolling layout put a window into the neighbouring column even when it sits side by side with another inside its column. Before, it joined that other window instead.
+- The config rejects negative gaps and accordion padding, border widths that are negative, `inf` or `nan`, and workspace numbers written as `01` or `+1` in `[workspace-to-display]`. Before, they were accepted, and `01` and `1` silently overrode each other.
+- A `dinky.toml` that is a symlink to a missing file, such as one into a dotfiles checkout not cloned yet, stays a symlink. Before, dinky replaced it with the default config at launch.
+- `exec-and-forget` finds Homebrew's commands on Intel Macs, where Homebrew lives in `/usr/local`. Before, hooks like the `sketchybar` examples failed there when dinky was started from Finder or at login.
+- A frontmost app that stops responding no longer stalls typing everywhere. Before, dinky asked it for its focused window twice a second with no time limit, on the thread that also handles key bindings.
+- Reading whether a new window's fullscreen button is enabled gives up after a second, like every other question dinky asks an app. Before, an app that stopped responding could hold dinky up for 6 seconds there.
+- dinky lets go of what it keeps for each app once the app quits. Before, it kept it for as long as it ran, and an app that later started with a quit app's process ID was taken as already set up, so its Enhanced UI and time limit were left as they were. Process IDs are rarely reused, so this was hard to hit.
+- Disabled dinky leaves windows and Spaces alone. Before, while off it still ran `[[rules]]` on new windows, moved new windows to the focused display, and rearranged workspaces on a config reload or display change. A `dinky enable off` sent before Accessibility was granted no longer gets lost either.
+- dinky started disabled, as after a `dinky enable off` sent before Accessibility was granted, leaves windows where they are when it quits. Before, it put them back where they were when Accessibility was granted, undoing whatever you had moved since.
+- Disabling, quitting and `dinky recover` put windows back where they were when dinky launched. Before, the frames recorded as the originals could already be the tiled ones, so restoring left windows tiled.
+- A window that could not be put back, because its display was unplugged or its app did not answer, stays journaled, so the next disable, quit or `dinky recover` tries it again, unless you move it by hand in the meantime: then it stays where you put it. Before, it was forgotten after the first try.
+- One app that stops responding while windows are being put back no longer spoils the report for the others. Before, every window counted as not restored when any app took longer than 3 seconds.
+- Showing, hiding or moving the Dock, or turning menu bar hiding on or off, fits the tiles to the new free area. Before, they kept the old one until something else changed, overlapping the Dock or leaving a gap.
+- Windows moved since a display was plugged in or out stay where you put them. Before, when arranging the workspaces right after the display change stopped short, a later config reload sent windows back to where they had been before that change.
+- Turning dinky back on leaves windows where you put them after a display was plugged in or out while it was off. Before, enabling it, hours later perhaps, sent them back to where they were before the display change.
+- A CLI argument with both `'` and `"` in it, such as a `--format` of `it's "%{app-name}"`, or one starting with a combining accent, reaches dinky as typed. Before, quotes were lost, and some mixes swallowed the flags after it.
+- Switching workspaces on two displays in quick succession lands each display where it was sent. Before, a switch asked for while the other display's switch moved the pointer could be dropped, with its follow-up running on the old Space.
+- A window you are dragging stays under the pointer when something else changes the layout mid-drag, such as another window opening or the Dock hiding. Before, the pass that followed wrote the dragged window back to its tile.
+- Dropping a dragged window back where it started leaves its size alone when its tile changed during the drag, such as when another window opened. Before, the drop read as dragging one edge, and resized the window into its new neighbour.
+- A `dinky.toml` that is a symlink reloads when the link itself is replaced, as `ln -sf` or a dotfiles tool does it. Before, dinky went on watching the file the old link pointed to.
+- Saving `dinky.toml` reloads it promptly even while other files in its folder keep changing. Before, a change to any file in the folder pushed the reload back, so a busy folder could hold it off for as long as it stayed busy.
+- dinky stops watching the config for good when it stops. Before, a watch stopped while `dinky.toml` was missing came back once the file appeared, and reported a reload.
+- `dinky doctor` says dinky is developed and tested on macOS 27. Before, it claimed every build was built against 27.0, whichever SDK built it.
+- When dinky can't listen to the keyboard, as can happen right after Accessibility is granted, it keeps trying and the menu bar shows `!` with a menu line saying the key bindings are off. Before, the bindings stayed dead until dinky restarted, with nothing to say so.
+- An app that stops responding no longer holds up the next arrangement, or disabling and quitting dinky. Before, raising its windows into their stacking order blocked for seconds, and everything waiting on that arrangement waited too.
+- `dinky doctor` warns about a `[workspace.<number>]` table past the last workspace. Before, nothing said the table did nothing.
+- Overlapping windows, as in an accordion, end up in the stacking order of the latest arrangement when an app is slow to answer. Before, an earlier arrangement that waited on that app could raise its windows last, putting the old order back.
+- dinky checks the answers to its display and window queries before using them. When displays share one set of Spaces and one goes away, macOS can answer with nothing, which would have crashed dinky. No such crash has been seen; this is a guard.
+
+### Other
+
+- The configuration reference says which values the config accepts: gaps, accordion padding and border width of 0 or more, and workspace numbers from 1 to `workspaces` in `[workspace-to-display]`.
+- A test checks that the configuration page shows the same default config dinky writes on first run.
+- The workflow that publishes the website runs its actions pinned to commits instead of movable tags.
+- The fuzzer reports an app that died or stopped answering as a violation, with the seed and step, instead of ending in a traceback or hanging.
+- The code that picks a workspace's layout algorithm from its settings moved onto `WorkspaceSettings`. Nothing changes in use.
+
 ## 0.19
 
 ### Tiling

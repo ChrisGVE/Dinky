@@ -48,6 +48,15 @@ public struct Config: Equatable {
     /// The config shipped with dinky, used when the user has none.
     public static let `default` = try! parse(defaultTOML)
 
+    /// Write the default config to `url`, creating its folder, if there is nothing there yet. A symlink counts
+    /// even when what it points to is missing, such as a dotfiles checkout not cloned yet: writing would replace it.
+    public static func writeDefaultIfMissing(at url: URL) {
+        // Unlike fileExists, attributesOfItem describes a symlink itself rather than following it.
+        guard (try? FileManager.default.attributesOfItem(atPath: url.path)) == nil else { return }
+        try? FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
+        try? (defaultTOML + "\n").write(to: url, atomically: true, encoding: .utf8)
+    }
+
     public static func load(from url: URL) throws(ConfigError) -> Config {
         let toml: String
         do {
@@ -83,7 +92,8 @@ public struct Config: Equatable {
         guard workspaces >= 1 else { throw ConfigError(path: "workspaces", "must be at least 1") }
         if let assignments = try t.table("workspace-to-display") {
             for key in assignments.keys {
-                guard let n = Int(key), (1...workspaces).contains(n) else {
+                // As for [workspace]: only the plain number, so `01` and `+1` can't both name workspace 1.
+                guard let n = Int(key), String(n) == key, (1...workspaces).contains(n) else {
                     throw ConfigError(path: assignments.path(key), "'\(key)' is not a workspace number from 1 to \(workspaces)")
                 }
                 let patterns = try assignments.stringOrStrings(key)!
@@ -220,6 +230,7 @@ public struct Accordion: Equatable {
 
     init(_ t: Table) throws {
         padding = try t.int("padding") ?? padding
+        guard padding >= 0 else { throw ConfigError(path: t.path("padding"), "must be 0 or more") }
         orientation = try t.choice("orientation") ?? orientation
         try t.done()
     }
@@ -259,6 +270,8 @@ public struct Borders: Equatable {
     init(_ t: Table) throws {
         enabled = try t.bool("enabled") ?? enabled
         width = try t.double("width") ?? width
+        // TOML has inf and nan; neither is a width.
+        guard width.isFinite, width >= 0 else { throw ConfigError(path: t.path("width"), "must be a finite number, 0 or more") }
         activeColor = try t.color("active-color") ?? activeColor
         inactiveColor = try t.color("inactive-color") ?? inactiveColor
         order = try t.choice("order") ?? order

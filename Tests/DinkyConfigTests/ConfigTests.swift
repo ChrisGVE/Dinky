@@ -3,6 +3,16 @@ import Testing
 @testable import DinkyConfig
 
 struct ConfigTests {
+    @Test func `The configuration page shows the default config as dinky writes it`() throws {
+        let page = URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
+            .appending(path: "docs/configuration.md")
+        let text = try String(contentsOf: page, encoding: .utf8)
+        let section = try #require(text.range(of: "## Default config\n"))
+        let open = try #require(text.range(of: "```toml\n", range: section.upperBound..<text.endIndex))
+        let close = try #require(text.range(of: "\n```", range: open.upperBound..<text.endIndex))
+        #expect(String(text[open.upperBound..<close.lowerBound]) == Config.defaultTOML)
+    }
+
     @Test func `Default config loads`() throws {
         let config = try Config.parse(Config.defaultTOML)
         #expect(config == Config.default)
@@ -160,6 +170,18 @@ struct ConfigTests {
         assertError("workspaces = true\n", path: "workspaces", line: 1, contains: "expected an integer")
         assertError("gaps = 8\n", path: "gaps", line: 1, contains: "expected a table")
         assertError("[accordion]\norientation = 'sideways'\n", path: "accordion.orientation", line: 2, contains: "'auto', 'keep'")
+    }
+
+    @Test func `Negative sizes fail`() {
+        assertError("[gaps]\ninner = -4\n", path: "gaps.inner", line: 2, contains: "0 or more")
+        assertError("[gaps]\ninner = { horizontal = 8, vertical = -1 }\n", path: "gaps.inner.vertical", line: 2, contains: "0 or more")
+        assertError("[gaps]\nouter = -8\n", path: "gaps.outer", line: 2, contains: "0 or more")
+        assertError("[gaps]\nouter = { top = 44, left = -8 }\n", path: "gaps.outer.left", line: 2, contains: "0 or more")
+        assertError("[display.main.gaps]\nouter = -8\n", path: "display.main.gaps.outer", line: 2, contains: "0 or more")
+        assertError("[accordion]\npadding = -5\n", path: "accordion.padding", line: 2, contains: "0 or more")
+        assertError("[borders]\nwidth = -2\n", path: "borders.width", line: 2, contains: "0 or more")
+        assertError("[borders]\nwidth = inf\n", path: "borders.width", line: 2, contains: "a finite number, 0 or more")
+        assertError("[borders]\nwidth = nan\n", path: "borders.width", line: 2, contains: "a finite number, 0 or more")
     }
 
     @Test func accordion() throws {

@@ -20,9 +20,15 @@ final class Coordinator {
         didSet {
             if !enabled { applier.cancel(); animator.cancel(); cancelDrag() }
             if enabled != oldValue { updateBorders() }
-            if enabled, !oldValue { reconcile() }
+            if enabled, !oldValue {
+                enabledSince = Date()
+                reconcile()
+            }
         }
     }
+    /// When tiling last came back on. Windows that first showed while it was off are left where they are, as
+    /// windows open before dinky started are.
+    private(set) var enabledSince = Date.distantPast
 
     let displays: DisplayModel
     private(set) var config: Config
@@ -46,6 +52,8 @@ final class Coordinator {
     var adopting: Set<WindowID> = []
     /// The tiled window being dragged with the mouse, until the button is released. See Drag.swift.
     var dragging: WindowID?
+    /// Its tile when the drag began. A tile that changes during the drag must not make the drop look like a resize.
+    var dragStart: CGRect?
     lazy var placeholders = DragPlaceholders()
     /// Called when the focused window changes.
     var onFocusChange: (() -> Void)?
@@ -66,7 +74,9 @@ final class Coordinator {
         self.config = config
     }
 
-    func start() {
+    /// `beforeTiling` runs once the model has read every window, whether or not it is subscribed to events, and
+    /// before anything is tiled: the last moment the frames it holds are the ones dinky found.
+    func start(beforeTiling: () -> Void = {}) {
         model.observe { [weak self] event in self?.handle(event) }
         animator.onArrive = { [weak self] ids in self?.borders?.arrived(ids) }
         var known = displays.displays
@@ -83,7 +93,13 @@ final class Coordinator {
         for name in [NSWorkspace.didHideApplicationNotification, NSWorkspace.didUnhideApplicationNotification] {
             center.addObserver(forName: name, object: nil, queue: .main) { [weak self] _ in self?.reconcile() }
         }
-        guard model.start() else {
+        center.addObserver(forName: NSWorkspace.didTerminateApplicationNotification, object: nil, queue: .main) { [weak self] note in
+            guard let app = note.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication else { return }
+            self?.applier.forget(pid: app.processIdentifier)
+        }
+        let started = model.start()
+        beforeTiling()
+        guard started else {
             fputs("coordinator: no WindowServer events\n", stderr)
             return
         }
@@ -250,7 +266,7 @@ final class Coordinator {
             workspaces[key]!.accordionPadding = CGFloat(config.accordion.padding)
             workspaces[key]!.autoOrientAccordions = config.accordion.orientation == .auto
             workspaces[key]!.columnWidth = config.scrolling.columnWidth
-            workspaces[key]!.setAlgorithm(workspaces[key]!.chosenAlgorithm ?? algorithm(settings(for: key)))
+            workspaces[key]!.setAlgorithm(workspaces[key]!.chosenAlgorithm ?? settings(for: key).algorithm)
         }
     }
 
@@ -264,26 +280,14 @@ final class Coordinator {
                         on: displays.display(containingSpace: space).map(displays.monitor))
     }
 
-    func algorithm(_ settings: WorkspaceSettings) -> TilingAlgorithm {
-        let expand: FixedExpansion = switch settings.expand {
-        case .rows: .rows
-        case .columns: .columns
-        case .accordion: .accordion
-        }
-        return switch settings.layout {
-        case .tiles, .dwindle: .dwindle(.tiles)
-        case .accordion: .dwindle(.accordion)
-        case .fixed: .fixed(rows: settings.rows, columns: settings.columns, expand: expand)
-        case .scrolling: .scrolling
-        }
-    }
-
     /// Classifies a window the first time it is on screen, then keeps it in the tree of its current Space
     /// while it is shown: minimized windows, windows of hidden apps and inactive tabs read as minimized.
     func track(_ window: Window) {
         if placements[window.id] == nil {
-            // AX only lists windows on a Space that is on screen; the rest are classified when theirs is.
-            guard window.isNormal, isVisible(window.spaceID) else { return }
+            // AX only lists windows on a Space that is on screen; the rest are classified when theirs is. Off, new
+            // windows are not classified at all: that runs `[[rules]]` and moves them to the focused display.
+            // Turning tiling back on reconciles, which tracks them then.
+            guard enabled, window.isNormal, isVisible(window.spaceID) else { return }
             // Once, on the first classification attempt, not again on its retries.
             if attempts[window.id] == nil { noteFirstShowing(window) }
             guard let classification = classify(window) else { return }
@@ -357,7 +361,7 @@ final class Coordinator {
             workspaces[key] = Workspace(bounds: display.visibleArea, gaps: gaps(on: display),
                                         accordionPadding: CGFloat(config.accordion.padding),
                                         autoOrientAccordions: config.accordion.orientation == .auto,
-                                        algorithm: algorithm(settings))
+                                        algorithm: settings.algorithm)
             workspaces[key]!.columnWidth = config.scrolling.columnWidth
             workspaces[key]!.walls = walls(of: display)
         }
@@ -400,11 +404,14 @@ final class Coordinator {
         guard var workspace = workspaces[key] else { return }
         workspace.minimumSizes = minimumSizes(in: workspace)
         workspaces[key] = workspace
-        let layout = workspace.layout()
+        // A window being dragged stays under the pointer: neither written back to its tile nor raised. With no
+        // front, the applier raises nothing of its app, which would take focus from it.
+        let layout = workspace.layout().excluding(dragging)
+        let front = workspace.focused == dragging ? nil : workspace.focused
         let pids = Dictionary(uniqueKeysWithValues: layout.order.compactMap { id in model.windows[id].map { (id, $0.pid) } })
         let write = { [weak self] in
             guard let self else { return }
-            applier.apply(layout, pids: pids, front: workspace.focused) { [weak self] results in
+            applier.apply(layout, pids: pids, front: front) { [weak self] results in
                 DispatchQueue.main.async {
                     guard let self, self.enabled else { return }
                     self.animator.noteLanded(results)
@@ -417,10 +424,8 @@ final class Coordinator {
         let snapped = snap.remove(key) != nil
         guard animates, !snapped else { return write() }
         // Stacking first, so the window coming to the front of an accordion slides in on top.
-        applier.raiseIntoOrder(layout, pids: pids, front: workspace.focused)
-        let starts = Dictionary(uniqueKeysWithValues: layout.order.compactMap { id in
-            id == dragging ? nil : model.windows[id].map { (id, $0.frame) }
-        })
+        applier.raiseIntoOrder(layout, pids: pids, front: front)
+        let starts = Dictionary(uniqueKeysWithValues: layout.order.compactMap { id in model.windows[id].map { (id, $0.frame) } })
         animator.animate(key, from: starts, to: layout.frames, pids: pids, then: write)
     }
 
