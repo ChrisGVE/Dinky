@@ -6,6 +6,11 @@
 
 - A browser's picture-in-picture window no longer takes dinky's focus (#13). Chromium browsers keep it above every other window and tag it like a document window, so once it was open, dinky took it for the focused one, and `focus` answered "no focused window" until it was closed. Windows above the normal level are now passed over: focus stays with the tiled window beneath, and `focus left` and friends work with the video playing.
 
+### Other
+
+- The workflow that publishes the website runs its actions pinned to commits instead of movable tags.
+- The fuzzer reports an app that died or stopped answering as a violation, with the seed and step, instead of ending in a traceback or hanging.
+
 ## 0.19
 
 ### Tiling
