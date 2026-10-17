@@ -4,7 +4,7 @@
 
 ### Fixes
 
-- On macOS before 27, apps that stop drawing while hidden, like Ghostty, show their content after a workspace switch. Before, the switch skipped macOS's animation, so their windows were never told they were visible again and showed only their border until Cmd-Tab or Show Desktop.
+- On macOS before 27, apps that stop drawing while hidden, like Ghostty, show their content after a workspace switch. Before, the switch skipped macOS's animation, so their windows were never told they were visible again and showed only their border until Cmd-Tab or Show Desktop. A switch across several workspaces plays the animation once, for the last step.
 
 ## 0.19
 

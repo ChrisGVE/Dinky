@@ -239,15 +239,18 @@ static CGEventRef mimi_create_event(int phase, double rawSign)
 }
 
 // mimi's legacy swipe for macOS before 27: began and ended, the sign and velocity in the CGEvent fields.
-static bool legacy_post_swipe(double sign)
+// Only the last swipe of a switch needs the slow velocity, since only the Space it lands on must redraw; the
+// ones before it go at kMimiVelocity and skip their animation, so a multi-Space switch shows one slide.
+static bool legacy_post_swipe(double sign, bool last)
 {
+    double velocity = last ? kLegacyVelocity : kMimiVelocity;
     CGEventRef event = CGEventCreate(NULL);
     if (!event) return false;
     CGEventSetIntegerValueField(event, kEventTypeField, kEventDockControl);
     CGEventSetIntegerValueField(event, kGestureHIDType, kHIDEventTypeDockSwipe);
     CGEventSetIntegerValueField(event, kGestureSwipeMotion, kGestureMotionHorizontal);
     CGEventSetDoubleValueField(event, kGestureSwipeProgress, sign);
-    CGEventSetDoubleValueField(event, kGestureSwipeVelocityX, sign * kLegacyVelocity);
+    CGEventSetDoubleValueField(event, kGestureSwipeVelocityX, sign * velocity);
     CGEventSetIntegerValueField(event, kGesturePhase, kPhaseBegan);
     CGEventPost(kCGSessionEventTap, event);
     CGEventSetIntegerValueField(event, kGesturePhase, kPhaseEnded);
@@ -257,9 +260,9 @@ static bool legacy_post_swipe(double sign)
 }
 
 // mimi mimiPostAugmentedDockSwipe, or the legacy swipe before macOS 27. sign is +1 toward higher Space indices.
-static bool mimi_post_swipe(double sign)
+static bool mimi_post_swipe(double sign, bool last)
 {
-    if (!requires_augmentation()) return legacy_post_swipe(sign);
+    if (!requires_augmentation()) return legacy_post_swipe(sign, last);
     double rawSign = augmented_sign(sign);
     static const int phases[] = {kPhaseBegan, kPhaseChanged, kPhaseEnded};
     for (size_t i = 0; i < sizeof(phases) / sizeof(phases[0]); i++) {
@@ -319,7 +322,7 @@ static bool mimi_post_swipes(double sign, int count, CGDirectDisplayID displayID
     }
 
     bool posted = true;
-    for (int i = 0; i < count && posted; i++) posted = mimi_post_swipe(sign);
+    for (int i = 0; i < count && posted; i++) posted = mimi_post_swipe(sign, i == count - 1);
 
     if (warp) {
         pump(kMimiStepDelay);  // let the swipes land before the cursor leaves the display
