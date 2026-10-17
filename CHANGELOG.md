@@ -5,6 +5,8 @@
 ### Fixes
 
 - A browser's picture-in-picture window no longer takes dinky's focus (#13). Chromium browsers keep it above every other window and tag it like a document window, so once it was open, dinky took it for the focused one, and `focus` answered "no focused window" until it was closed. Windows above the normal level are now passed over: focus stays with the tiled window beneath, and `focus left` and friends work with the video playing.
+- A window you are dragging stays under the pointer when something else changes the layout mid-drag, such as another window opening or the Dock hiding. Before, the pass that followed wrote the dragged window back to its tile.
+- Dropping a dragged window back where it started leaves its size alone when its tile changed during the drag, such as when another window opened. Before, the drop read as dragging one edge, and resized the window into its new neighbour.
 
 ## 0.19
 
