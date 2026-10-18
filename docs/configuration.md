@@ -347,7 +347,8 @@ environment `exec-and-forget` gets.
 Every rule whose conditions all match a new window runs, in order. Dialogs,
 sheets, panels and fixed-size windows always float. Windows that can't go full
 screen float too while `float-windows-without-fullscreen` is on, unless a
-`layout tiling` rule tiles them.
+`layout tiling` rule tiles them. A window an app keeps above all others, like a
+browser's picture-in-picture, is left alone and never takes dinky's focus.
 
 A rule that is exactly `layout floating` or `layout tiling` decides before the
 window is placed, the last one winning. Every other rule command runs once the

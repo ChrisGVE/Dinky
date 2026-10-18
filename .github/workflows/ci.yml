@@ -1,0 +1,36 @@
+name: Build and test
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+    paths-ignore:
+      - docs/**
+      - CHANGELOG.md
+      - .github/workflows/pages.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        # Apple silicon, and Intel on macOS 26, where Intel Macs stop: the pre-27 paths every Intel user runs,
+        # which no maintainer machine builds. GitHub retires its Intel images in fall 2027.
+        runner: [macos-26, macos-26-intel]
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+      - name: Versions
+        run: |
+          sw_vers
+          uname -m
+          swift --version
+      - run: swift build
+      - run: swift test
