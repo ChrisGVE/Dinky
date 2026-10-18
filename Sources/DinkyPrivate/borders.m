@@ -188,12 +188,15 @@ uint32_t dinky_border_focused_window(void)
         CFTypeRef iterator = query ? SLSWindowQueryResultCopyWindows(query) : NULL;
 
         // The iterator yields windows in the input array's order, so the first match is the
-        // frontmost. JankyBorders get_front_window relies on the same.
+        // frontmost. JankyBorders get_front_window relies on the same. Only the normal level counts: a
+        // window the app keeps on top, like a browser's picture-in-picture, is tagged as a document too and
+        // sits in front of every normal one, but it is never tiled, so focus stays with the window below.
         while (iterator && SLSWindowIteratorAdvance(iterator)) {
             uint32_t wid = SLSWindowIteratorGetWindowID(iterator);
             uint32_t parent = SLSWindowIteratorGetParentID(iterator);
             uint64_t tags = SLSWindowIteratorGetTags(iterator);
             uint64_t attributes = SLSWindowIteratorGetAttributes(iterator);
+            if (SLSWindowIteratorGetLevel(iterator) != 0) continue;
             if (dinky_is_document_kind(parent, tags) && dinky_is_visible(attributes, tags)) {
                 focused = wid;
                 break;
