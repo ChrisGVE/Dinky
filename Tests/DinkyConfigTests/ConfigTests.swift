@@ -3,6 +3,16 @@ import Testing
 @testable import DinkyConfig
 
 struct ConfigTests {
+    @Test func `The configuration page shows the default config as dinky writes it`() throws {
+        let page = URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
+            .appending(path: "docs/configuration.md")
+        let text = try String(contentsOf: page, encoding: .utf8)
+        let section = try #require(text.range(of: "## Default config\n"))
+        let open = try #require(text.range(of: "```toml\n", range: section.upperBound..<text.endIndex))
+        let close = try #require(text.range(of: "\n```", range: open.upperBound..<text.endIndex))
+        #expect(String(text[open.upperBound..<close.lowerBound]) == Config.defaultTOML)
+    }
+
     @Test func `Default config loads`() throws {
         let config = try Config.parse(Config.defaultTOML)
         #expect(config == Config.default)
@@ -46,6 +56,73 @@ struct ConfigTests {
 
     @Test func `Empty config uses defaults`() throws {
         #expect(try Config.parse("") == Config())
+    }
+
+    @Test func `Warnings record nested paths and source lines`() throws {
+        let config = try Config.parse("[gaps]\ninner = 3\n") { table in
+            try table.table("gaps")?.warn("inner", "use the new key")
+        }
+        #expect(config.warnings == [ConfigWarning(path: "gaps.inner", "use the new key", line: 2)])
+    }
+
+    @Test func `Renamed keys keep loading`() throws {
+        let old = try Config.parse("[master]\norientation = 'right'\n")
+        #expect(old.master.side == .right)
+        #expect(old.warnings == [ConfigWarning(
+            path: "master.orientation",
+            "renamed to 'side' in 0.23; the old name still works",
+            line: 2,
+            fix: ConfigFix(replace: "orientation", with: "side")
+        )])
+
+        let both = try Config.parse("[master]\norientation = 'left'\nside = 'right'\n")
+        #expect(both.master.side == .right)
+        #expect(both.warnings == [ConfigWarning(
+            path: "master.orientation",
+            "ignored: 'side' is set (renamed from 'orientation' in 0.23)",
+            line: 2
+        )])
+    }
+
+    @Test func `Custom key changes cover removed keys, array tables and values`() throws {
+        let changes = KeyChanges(
+            keys: [
+                KeyChange(table: "", old: "obsolete", new: nil, version: "1.2"),
+                KeyChange(table: "rules", old: "application", new: "app-id", version: "1.3")
+            ],
+            values: [ValueChange(table: "master", key: "side", old: "west", new: "left", version: "1.4")]
+        )
+        let config = try Config.parse("""
+        obsolete = true
+        [master]
+        side = 'west'
+        [[rules]]
+        application = 'com.example.App'
+        run = 'layout floating'
+        """, changes: changes) { _ in }
+
+        #expect(config.rules[0].appId == "com.example.App")
+        #expect(config.master.side == .left)
+        #expect(config.warnings == [
+            ConfigWarning(path: "master.side", "'west' was renamed to 'left' in 1.4", line: 3,
+                          fix: ConfigFix(replace: "west", with: "left")),
+            ConfigWarning(path: "rules[0].application", "renamed to 'app-id' in 1.3; the old name still works",
+                          line: 5, fix: ConfigFix(replace: "application", with: "app-id")),
+            ConfigWarning(path: "obsolete", "removed in 1.2; ignored", line: 1)
+        ])
+    }
+
+    @Test func `Warnings and errors format suggestions`() {
+        let fix = ConfigFix(replace: "old-key", with: "new-key")
+        #expect(ConfigWarning(path: "gaps.inner", "use the new key", line: 2, fix: fix).description ==
+                "line 2, gaps.inner: use the new key (suggestion: replace 'old-key' with 'new-key')")
+        #expect(ConfigError(path: "gaps.inner", "use the new key", line: 2, fix: fix).description ==
+                "line 2, gaps.inner: use the new key (suggestion: replace 'old-key' with 'new-key')")
+    }
+
+    @Test func `Configs without warnings stay equal to their defaults`() throws {
+        #expect(try Config.parse(Config.defaultTOML).warnings == [])
+        #expect(try Config.parse(Config.defaultTOML) == Config.default)
     }
 
     @Test func `Top-level keys`() throws {
@@ -269,6 +346,58 @@ struct ConfigTests {
         assertError("[accordion]\norientation = 'sideways'\n", path: "accordion.orientation", line: 2, contains: "'auto', 'keep'")
     }
 
+    @Test func `Negative sizes clamp with warnings`() throws {
+        let inner = try Config.parse("[gaps]\ninner = -4\n")
+        #expect(inner.gaps.inner == Inner(0))
+        #expect(inner.warnings == [ConfigWarning(path: "gaps.inner", "must be 0 or more; using 0", line: 2,
+                                                  fix: ConfigFix(replace: "-4", with: "0"))])
+
+        let innerTable = try Config.parse("[gaps]\ninner = { horizontal = 8, vertical = -1 }\n")
+        #expect(innerTable.gaps.inner == Inner(horizontal: 8, vertical: 0))
+        #expect(innerTable.warnings == [ConfigWarning(path: "gaps.inner.vertical", "must be 0 or more; using 0", line: 2,
+                                                       fix: ConfigFix(replace: "-1", with: "0"))])
+
+        let outer = try Config.parse("[gaps]\nouter = -8\n")
+        #expect(outer.gaps.outer == Sides(0))
+        #expect(outer.warnings == [ConfigWarning(path: "gaps.outer", "must be 0 or more; using 0", line: 2,
+                                                  fix: ConfigFix(replace: "-8", with: "0"))])
+
+        let outerTable = try Config.parse("[gaps]\nouter = { top = 44, left = -8 }\n")
+        #expect(outerTable.gaps.outer == Sides(top: 44, bottom: 8, left: 0, right: 8))
+        #expect(outerTable.warnings == [ConfigWarning(path: "gaps.outer.left", "must be 0 or more; using 0", line: 2,
+                                                       fix: ConfigFix(replace: "-8", with: "0"))])
+
+        let display = try Config.parse("[display.main.gaps]\nouter = -8\n")
+        let patch = display.displays[0].gaps
+        #expect([patch.top, patch.bottom, patch.left, patch.right] == [0, 0, 0, 0])
+        #expect(display.warnings == [ConfigWarning(path: "display.main.gaps.outer", "must be 0 or more; using 0", line: 2,
+                                                   fix: ConfigFix(replace: "-8", with: "0"))])
+
+        let accordion = try Config.parse("[accordion]\npadding = -5\n")
+        #expect(accordion.accordion.padding == 0)
+        #expect(accordion.warnings == [ConfigWarning(path: "accordion.padding", "must be 0 or more; using 0", line: 2,
+                                                      fix: ConfigFix(replace: "-5", with: "0"))])
+
+        for value in ["-2", "-2.0", "-2.5"] {
+            let config = try Config.parse("[borders]\nwidth = \(value)\n")
+            #expect(config.borders.width == 0)
+            #expect(config.warnings == [ConfigWarning(path: "borders.width", "must be 0 or more; using 0", line: 2,
+                                                       fix: ConfigFix(replace: value == "-2.5" ? "-2.5" : "-2", with: "0"))])
+        }
+
+        // The fix replaces the sign too only when it is a minus: `+inf` becomes `+4`, still 4.
+        for (value, replacement) in [("inf", "inf"), ("+inf", "inf"), ("-inf", "-inf"), ("nan", "nan")] {
+            let config = try Config.parse("[borders]\nwidth = \(value)\n")
+            #expect(config.borders.width == 4)
+            #expect(config.warnings == [ConfigWarning(
+                path: "borders.width",
+                "must be a finite number, 0 or more; using the default, 4",
+                line: 2,
+                fix: ConfigFix(replace: replacement, with: "4")
+            )])
+        }
+    }
+
     @Test func accordion() throws {
         let accordion = try Config.parse("[accordion]\npadding = 12\norientation = 'keep'\n").accordion
         #expect(accordion.padding == 12)
@@ -363,6 +492,9 @@ struct ConfigTests {
         [mode.main]
         alt-a = 'workspace 1'
         alt-b = ['layout floating', 'mode main']
+        ctrl-h = { command = 'focus left --wrap-around', exclude-apps = ['com.github.wez.wezterm', 'com.mitchellh.ghostty'] }
+        ctrl-j = { command = ['focus down', 'retile'] }
+        ctrl-k = { command = 'focus up' }
 
         [mode.resize]
         minus = 'resize smart -50'
@@ -370,7 +502,24 @@ struct ConfigTests {
         let bindings = config.modes["main"]!.bindings
         #expect(bindings[KeyCombo(modifiers: .alt, key: "a")] == ["workspace 1"])
         #expect(bindings[KeyCombo(modifiers: .alt, key: "b")] == ["layout floating", "mode main"])
+        #expect(bindings[KeyCombo(modifiers: .ctrl, key: "h")] == ["focus left --wrap-around"])
+        #expect(config.modes["main"]!.excludedApps[KeyCombo(modifiers: .ctrl, key: "h")] == ["com.github.wez.wezterm", "com.mitchellh.ghostty"])
+        #expect(config.modes["main"]!.bindings[KeyCombo(modifiers: .ctrl, key: "j")] == ["focus down", "retile"])
+        #expect(config.modes["main"]!.excludedApps[KeyCombo(modifiers: .ctrl, key: "j")] == nil)
+        #expect(config.modes["main"]!.bindings[KeyCombo(modifiers: .ctrl, key: "k")] == ["focus up"])
         #expect(config.modes["resize"]!.bindings[KeyCombo(key: "minus")] == ["resize smart -50"])
+    }
+
+    @Test func `Binding exclusions`() throws {
+        let mode = try Config.parse("""
+        [mode.main]
+        ctrl-h = { command = 'focus left', exclude-apps = ['com.example.Terminal'] }
+        """).modes["main"]!
+        let combo = KeyCombo(modifiers: .ctrl, key: "h")
+        #expect(mode.commands(for: combo, frontApp: "com.example.Terminal") == nil)
+        #expect(mode.commands(for: combo, frontApp: "com.apple.TextEdit") == ["focus left"])
+        #expect(mode.commands(for: combo, frontApp: nil) == ["focus left"])
+        #expect(mode.commands(for: KeyCombo(key: "a"), frontApp: nil) == nil)
     }
 
     @Test func `Bad binding values fail`() {
@@ -378,6 +527,10 @@ struct ConfigTests {
         assertError("[mode.main]\nalt-a = []\n", path: "mode.main.alt-a", line: 2, contains: "can't be empty")
         assertError("[mode.main]\nalt-a = 3\n", path: "mode.main.alt-a", line: 2, contains: "command string")
         assertError("[mode.main]\nalt-a = ['x', 3]\n", path: "mode.main.alt-a", line: 2, contains: "command string")
+        assertError("[mode.main]\nalt-a = { exclude-apps = ['com.example.App'] }\n", path: "mode.main.alt-a.command", line: 2, contains: "missing, a binding table needs 'command'")
+        assertError("[mode.main]\nalt-a = { command = 'x', ignored = true }\n", path: "mode.main.alt-a.ignored", line: 2, contains: "unknown key")
+        assertError("[mode.main]\nalt-a = { command = 'x', exclude-apps = 'com.example.App' }\n", path: "mode.main.alt-a.exclude-apps", line: 2, contains: "list of strings")
+        assertError("[mode.main]\nalt-a = { command = '' }\n", path: "mode.main.alt-a.command", line: 2, contains: "can't be empty")
         assertError("[mode.main]\nalt-super-a = 'x'\n", path: "mode.main.alt-super-a", line: 2, contains: "'alt-super-a'")
         assertError("[mode.main]\nalt-shift-a = 'x'\nshift-alt-a = 'y'\n", path: "mode.main.shift-alt-a", line: 3, contains: "bound twice")
         assertError("[mode.main]\nhyper-a = 'x'\nctrl-alt-cmd-shift-a = 'y'\n", path: "mode.main.ctrl-alt-cmd-shift-a", line: 3, contains: "bound twice")

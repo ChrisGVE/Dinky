@@ -64,6 +64,7 @@ final class DinkyApp: NSObject, NSApplicationDelegate, NSMenuDelegate {
         AppState.shared.startCoordinator()
         if let windows = AppState.shared.coordinator?.model { noteGoneWindows(in: windows) }
         AppState.shared.numbers.start()
+        ConfigIssuesWindow.shared.allowPresentation()
         AppState.shared.numbers.observe { [weak self] _ in self?.refresh() }
         AppState.shared.displays.observe { [weak self] _ in self?.refresh() }
         // Nothing publishes the enabled state, the config error or other tilers starting and quitting.
@@ -88,7 +89,7 @@ final class DinkyApp: NSObject, NSApplicationDelegate, NSMenuDelegate {
             hotkeysActive = keys
             print(keys ? "app: key bindings on" : "app: key bindings off, could not create the keyboard event tap (Accessibility?)")
         }
-        let trouble = state.configError != nil || !otherTilers.isEmpty || !hotkeysActive
+        let trouble = state.configError != nil || !state.config.warnings.isEmpty || !otherTilers.isEmpty || !hotkeysActive
         statusItem.button?.title = (workspace.map { "\($0)" } ?? "?") + (trouble ? "!" : "")
         statusItem.button?.appearsDisabled = !state.enabled
     }
@@ -111,6 +112,9 @@ final class DinkyApp: NSObject, NSApplicationDelegate, NSMenuDelegate {
         }
         if let error = state.configError {
             menu.addItem(withTitle: "Config error: \(error)", action: nil, keyEquivalent: "")
+        }
+        for warning in state.config.warnings {
+            menu.addItem(withTitle: "Config warning: \(warning)", action: nil, keyEquivalent: "")
         }
         if !otherTilers.isEmpty {
             menu.addItem(withTitle: otherTilersWarning(otherTilers), action: nil, keyEquivalent: "")
