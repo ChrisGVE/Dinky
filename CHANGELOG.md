@@ -6,6 +6,10 @@
 
 - A binding can be a table, `{ command = '...', exclude-apps = ['<bundle id>'] }`. In an excluded app dinky leaves the key to the app, so terminals with their own `ctrl-hjkl` pane navigation keep it.
 
+### Configuration
+
+- The config can now report warnings, shown by `dinky doctor` and in the menu, with a suggested fix where there is one.
+
 ### Fixes
 
 - The config rejects negative gaps and accordion padding, border widths that are negative, `inf` or `nan`, and workspace numbers written as `01` or `+1` in `[workspace-to-display]`. Before, they were accepted, and `01` and `1` silently overrode each other.
