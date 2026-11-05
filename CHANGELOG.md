@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### Other
+
+- Fork only: builds from this fork never check for updates and leave Check for Updates out of the menu, so upstream's release can't replace them. Before, this applied only to Intel builds, because releases were Apple silicon only.
+
 ## 0.30
 
 **macOS 26 and earlier:** Add enough desktops in Mission Control (Control–↑) on each display for your configured workspaces. dinky still numbers, switches and tiles existing desktops, but automatic desktop creation and removal now require macOS 27 or later.
