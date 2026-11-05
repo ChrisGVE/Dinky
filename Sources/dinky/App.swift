@@ -27,9 +27,12 @@ final class DinkyApp: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private var socket: SocketServer?
     private let onboarding = Onboarding()
     private var signals: [DispatchSourceSignal] = []
+    // Fork only: this build carries changes upstream's releases don't, and it is stamped version 0.0, so
+    // the feed would offer upstream's release at once and replace it. It neither checks for updates nor offers to.
+    private static let updates = false
     // Only a bundle carries the feed URL; a bare debug binary would otherwise show an "Unable to Check
     // For Updates" alert at launch that blocks the socket until dismissed.
-    private let updater = SPUStandardUpdaterController(startingUpdater: Bundle.main.infoDictionary?["SUFeedURL"] != nil,
+    private let updater = SPUStandardUpdaterController(startingUpdater: updates && Bundle.main.infoDictionary?["SUFeedURL"] != nil,
                                                        updaterDelegate: nil, userDriverDelegate: nil)
 
     func applicationDidFinishLaunching(_ note: Notification) {
@@ -199,9 +202,11 @@ final class DinkyApp: NSObject, NSApplicationDelegate, NSMenuDelegate {
             menu.addItem(item("Restore \(recoverable) windows from the previous session", "recover"))
         }
         menu.addItem(.separator())
-        let updates = NSMenuItem(title: "Check for Updates…", action: #selector(checkForUpdates(_:)), keyEquivalent: "")
-        updates.target = self
-        menu.addItem(updates)
+        if Self.updates {
+            let updates = NSMenuItem(title: "Check for Updates…", action: #selector(checkForUpdates(_:)), keyEquivalent: "")
+            updates.target = self
+            menu.addItem(updates)
+        }
         menu.addItem(NSMenuItem(title: "Quit dinky", action: #selector(NSApplication.terminate(_:)), keyEquivalent: ""))
     }
 

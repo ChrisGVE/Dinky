@@ -72,6 +72,9 @@ open build/dinky.app
 (`security find-identity -p codesigning`): macOS ties the Accessibility grant
 to the signature, so ad-hoc builds lose it on every rebuild.
 
+This fork's builds don't update themselves: they carry changes upstream's
+releases don't have, so they neither check for updates nor show Check for Updates.
+
 ## First run
 
 dinky writes `~/.config/dinky/dinky.toml`, asks for Accessibility, and offers
