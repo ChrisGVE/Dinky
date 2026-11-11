@@ -192,6 +192,14 @@ extension Workspace {
         }
     }
 
+    /// Apply the config's stack mode when it differs from the one last applied. A reload with the same setting keeps
+    /// what a `layout` command chose since; a changed setting applies at once, to the open stack too.
+    public mutating func setConfiguredStackMode(_ mode: LayoutMode) {
+        guard mode != configuredStackMode else { return }
+        configuredStackMode = mode
+        setStackLayout(mode, nil)
+    }
+
     /// Give the master its configured share and the stacked windows equal ones.
     mutating func balanceMaster() {
         root.balance()

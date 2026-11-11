@@ -53,6 +53,8 @@ public struct Workspace: Equatable, Sendable {
     public private(set) var masterSide = MasterSide.left
     /// Master: how the stack shows its windows, kept while it is closed.
     var stackMode = LayoutMode.tiles
+    /// Master: the stack mode the config asks for. See `setConfiguredStackMode(_:)`.
+    var configuredStackMode = LayoutMode.tiles
     var stackOrientation = ContainerOrientation.vertical
     /// The algorithm a `layout` command switched to, kept over the config's. Nil follows the config.
     public var chosenAlgorithm: TilingAlgorithm?

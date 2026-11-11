@@ -195,6 +195,20 @@ struct MasterCommandTests {
         #expect(ws.container(of: 4)?.mode == .tiles)
     }
 
+    @Test func `The configured stack layout opens the stack, and a layout command overrides it`() {
+        var ws = Workspace(bounds: rect(0, 0, 1000, 600), algorithm: .master)
+        ws.setConfiguredStackMode(.accordion)
+        for id in 1...3 { ws.insert(WindowID(id)) }
+        #expect(ws.container(of: 3)?.mode == .accordion)
+        #expect(ws.container(of: 1)?.mode == .tiles, "the master stays a tile")
+        ws.setLayout(.tiles, nil)
+        ws.setConfiguredStackMode(.accordion)
+        #expect(ws.container(of: 3)?.mode == .tiles, "a reload with the same setting keeps the command's choice")
+        ws.setConfiguredStackMode(.tiles)
+        ws.setConfiguredStackMode(.accordion)
+        #expect(ws.container(of: 3)?.mode == .accordion, "a changed setting applies at once")
+    }
+
     @Test func `Layout commands see the stack from every window`() {
         var ws = master(1)
         #expect(ws.layoutContainer(of: 1)?.container.mode == .tiles)

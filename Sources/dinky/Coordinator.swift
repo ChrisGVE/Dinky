@@ -343,6 +343,7 @@ final class Coordinator {
             workspaces[key]!.columnWidth = config.scrolling.columnWidth
             workspaces[key]!.masterSize = config.master.size
             workspaces[key]!.setMasterSide(config.master.layoutSide)
+            workspaces[key]!.setConfiguredStackMode(config.master.stackMode)
             workspaces[key]!.fullscreenWidth = fullscreenWidth(for: key)
             workspaces[key]!.loneWindowWidth = loneWindowWidth(for: key)
             workspaces[key]!.setAlgorithm(workspaces[key]!.chosenAlgorithm ?? settings(for: key).algorithm)
@@ -543,6 +544,7 @@ final class Coordinator {
             workspaces[key]!.columnWidth = config.scrolling.columnWidth
             workspaces[key]!.masterSize = config.master.size
             workspaces[key]!.setMasterSide(config.master.layoutSide)
+            workspaces[key]!.setConfiguredStackMode(config.master.stackMode)
             workspaces[key]!.fullscreenWidth = fullscreenWidth(for: key)
             workspaces[key]!.loneWindowWidth = loneWindowWidth(for: key)
             workspaces[key]!.walls = walls(of: display)
