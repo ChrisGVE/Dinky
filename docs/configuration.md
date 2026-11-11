@@ -596,6 +596,7 @@ column-width = 0.49             # a new column's share of the display; a lone co
 [master]
 size = 0.6                      # the master's share of the display beside the stack; alone it fills it
 side = 'left'                   # left | right | center: the master's side
+stack-layout = 'tiles'          # tiles | accordion: how the stack starts out
 
 [gaps]
 inner = 8                       # or { horizontal = 8, vertical = 8 }
