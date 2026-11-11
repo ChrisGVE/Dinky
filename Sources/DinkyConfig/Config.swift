@@ -305,6 +305,8 @@ public struct Master: Equatable {
     /// The side the master takes; the stack goes on the other, or on both of a centred master. Hyprland calls it
     /// `orientation`.
     public var side = MasterSide.left
+    /// How the stack starts out: tiles or an accordion. `layout tiles` and `layout accordion` still switch it.
+    public var stackLayout = StackLayout.tiles
 
     public init() {}
 
@@ -312,12 +314,18 @@ public struct Master: Equatable {
         size = try t.double("size") ?? size
         guard (0.1...0.9).contains(size) else { throw ConfigError(path: t.path("size"), "must be 0.1 to 0.9") }
         side = try t.choice("side") ?? side
+        stackLayout = try t.choice("stack-layout") ?? stackLayout
         try t.done()
     }
 }
 
 public enum MasterSide: String, CaseIterable {
     case left, right, center
+}
+
+/// How the master layout's stack shows its windows.
+public enum StackLayout: String, CaseIterable {
+    case tiles, accordion
 }
 
 /// Below the target, or above it as a ring that never covers content or takes clicks.

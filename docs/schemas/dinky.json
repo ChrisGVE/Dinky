@@ -123,6 +123,12 @@
           "enum": ["left", "right", "center"],
           "default": "left",
           "description": "The side the master takes; the stack goes on the other. center puts the master in the middle with a stack on each side once two windows are stacked. Hyprland calls it orientation."
+        },
+        "stack-layout": {
+          "type": "string",
+          "enum": ["tiles", "accordion"],
+          "default": "tiles",
+          "description": "How the stack starts out. layout tiles and layout accordion still switch it; a reload keeps that choice unless this setting changed."
         }
       }
     },

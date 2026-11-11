@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### Layout
+
+- `[master] stack-layout = 'accordion'` starts the master layout's stack as an accordion instead of tiles. `layout tiles` and `layout accordion` still switch it, and a config reload keeps that choice unless the setting itself changed.
+
 ## 0.26
 
 ### Key bindings

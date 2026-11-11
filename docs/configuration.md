@@ -202,8 +202,8 @@ in their order: as an accordion if most of them were in one, else as tiles.
 
 `layout tiles` and `layout accordion` switch the stack between tiles and an
 accordion running top to bottom, whichever window is focused, so
-`layout tiles accordion` toggles it. The stack keeps its mode while it is
-closed.
+`layout tiles accordion` toggles it. The stack starts as `stack-layout` says,
+tiles by default, and keeps its mode while it is closed.
 
 `workspace-layout master` switches the focused window's workspace to the master
 layout on the fly, and `workspace-layout dwindle` switches it back to its tree:
@@ -235,6 +235,7 @@ its own.
 |---|---|---|
 | `size` | `0.6` | The master's share of the display inside the outer gaps while windows are stacked beside it, from `0.1` to `0.9`. Hyprland calls it `mfact`. It applies to a stack opened later and to `balance-sizes`. |
 | `side` | `'left'` | The side the master takes: `'left'`, `'right'` or `'center'`. The stack goes on the other; with `'center'`, for wide displays, the master takes the middle once two windows are stacked and they split between a stack on each side. Hyprland calls it `orientation`. |
+| `stack-layout` | `'tiles'` | How the stack starts out: `'tiles'` or `'accordion'`. `layout tiles` and `layout accordion` still switch it, and a reload keeps that choice unless this setting changed. |
 
 </div>
 
