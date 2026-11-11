@@ -2,8 +2,23 @@
 
 ## Unreleased
 
+### Configuration
+
+- The config can now report warnings, shown by `dinky doctor` and in the menu, with a suggested fix where there is one.
+- A config issues window lists warnings and errors, applies its suggestions, and keeps a backup before editing.
+- A config using a renamed key loads again with a warning naming the new key; for example, `[master] orientation`, renamed to `side` in 0.23, no longer makes the config fail to load.
+- The JSON schema lists renamed keys as deprecated, so editors such as Zed or VS Code no longer mark `[master] orientation` as an unknown key.
+
+### Fixes
+
+- Negative gaps and accordion padding now load as 0, negative border widths as 0, `inf` or `nan` border widths as the default, and `01` or `+1` as the plain workspace number in `[workspace-to-display]`, where the first of two keys naming one workspace wins. Each is reported with a warning and a suggested fix. Before, they were accepted silently, and `01` and `1` overrode each other.
+- `dinky doctor` warns about a `[workspace.<number>]` table past the last workspace. Before, nothing said the table did nothing.
+
 ### Other
 
+- The configuration reference says which values the config accepts and how legacy values are handled: negative gaps, accordion padding and border widths load as 0, `inf` or `nan` border widths load as the default, and `01` or `+1` load as the plain workspace number in `[workspace-to-display]`.
+- A test checks that the configuration page shows the same default config dinky writes on first run.
+- Renamed keys, removed keys and renamed choice values are listed in one table, `Sources/DinkyConfig/KeyChanges.swift`, so a future rename keeps old configs loading, with a warning, by adding one entry.
 - Fork only: builds from this fork never check for updates and leave Check for Updates out of the menu, so upstream's release can't replace them. Before, this applied only to Intel builds, because releases were Apple silicon only.
 
 ## 0.26
