@@ -29,4 +29,12 @@ extension Master {
         case .center: .center
         }
     }
+
+    /// The stack's mode, in the layout engine's terms.
+    var stackMode: LayoutMode {
+        switch stackLayout {
+        case .tiles: .tiles
+        case .accordion: .accordion
+        }
+    }
 }

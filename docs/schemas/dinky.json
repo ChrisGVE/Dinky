@@ -130,6 +130,12 @@
           "default": "left",
           "description": "Deprecated: renamed to side in 0.23. Still read, with a warning; side wins when both are set.",
           "x-taplo": { "hidden": true }
+        },
+        "stack-layout": {
+          "type": "string",
+          "enum": ["tiles", "accordion"],
+          "default": "tiles",
+          "description": "How the stack starts out. layout tiles and layout accordion still switch it; a reload keeps that choice unless this setting changed."
         }
       }
     },

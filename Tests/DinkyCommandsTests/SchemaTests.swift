@@ -92,6 +92,7 @@ struct SchemaTests {
         [master]
         size = 0.55
         side = 'right'
+        stack-layout = 'accordion'
 
         [gaps]
         inner.horizontal = 4
