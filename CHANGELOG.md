@@ -17,6 +17,7 @@
 
 - Negative gaps and accordion padding now load as 0, negative border widths as 0, `inf` or `nan` border widths as the default, and `01` or `+1` as the plain workspace number in `[workspace-to-display]`, where the first of two keys naming one workspace wins. Each is reported with a warning and a suggested fix. Before, they were accepted silently, and `01` and `1` overrode each other.
 - `dinky doctor` warns about a `[workspace.<number>]` table past the last workspace. Before, nothing said the table did nothing.
+- `dinky doctor` says where to turn off "When switching to an application, switch to a Space with open windows" when it slows down Cmd-Tab. It used to point to the app's onboarding, which offers that step only once.
 
 ### Other
 
