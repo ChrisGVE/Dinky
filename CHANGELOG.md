@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### Fixes
+
+- `dinky doctor` says where to turn off "When switching to an application, switch to a Space with open windows" when it slows down Cmd-Tab. It used to point to the app's onboarding, which offers that step only once.
+
 ## 0.28
 
 ### Fixes
