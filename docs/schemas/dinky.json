@@ -53,6 +53,16 @@
             "description": "This workspace's settings while it is on one display, keyed by pattern: main, secondary, or a case-insensitive part of the display's name. Omitted keys come from the workspace's own settings.",
             "additionalProperties": { "$ref": "#/definitions/workspaceSettings" }
           },
+          "master": {
+            "type": "object",
+            "additionalProperties": false,
+            "description": "Master layout values for this workspace. Omitted keys come from the top-level master table.",
+            "properties": {
+              "size": { "type": "number", "minimum": 0.1, "maximum": 0.9, "default": 0.6 },
+              "side": { "type": "string", "enum": ["left", "right", "center"], "default": "left" },
+              "stack-layout": { "type": "string", "enum": ["tiles", "accordion"], "default": "tiles" }
+            }
+          },
           "tiling": { "type": "boolean" },
           "layout": { "type": "string", "enum": ["tiles", "dwindle", "accordion", "fixed", "scrolling", "master"] },
           "columns": { "type": "integer", "minimum": 1, "default": 1, "description": "Reserved columns for a fixed layout." },
@@ -429,6 +439,16 @@
       "type": "object",
       "additionalProperties": false,
       "properties": {
+        "master": {
+          "type": "object",
+          "additionalProperties": false,
+          "description": "Master layout values for this workspace while it is on this display. Omitted keys come from the workspace, then the top-level master table.",
+          "properties": {
+            "size": { "type": "number", "minimum": 0.1, "maximum": 0.9, "default": 0.6 },
+            "side": { "type": "string", "enum": ["left", "right", "center"], "default": "left" },
+            "stack-layout": { "type": "string", "enum": ["tiles", "accordion"], "default": "tiles" }
+          }
+        },
         "tiling": { "type": "boolean" },
         "layout": { "type": "string", "enum": ["tiles", "dwindle", "accordion", "fixed", "scrolling"] },
         "columns": { "type": "integer", "minimum": 1, "default": 1, "description": "Reserved columns for a fixed layout." },

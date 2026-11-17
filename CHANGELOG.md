@@ -4,6 +4,7 @@
 
 ### Layout
 
+- `[workspace.N.master]` and `[workspace.N.display.<pattern>.master]` set the master layout's `size`, `side` and `stack-layout` for one workspace, or for it on matching displays. A key left out takes the next level's value: display, then workspace, then `[master]`.
 - `[master] stack-layout = 'accordion'` starts the master layout's stack as an accordion instead of tiles. `layout tiles` and `layout accordion` still switch it, and a config reload keeps that choice unless the setting itself changed.
 
 ## 0.30

@@ -341,9 +341,11 @@ final class Coordinator {
             workspaces[key]!.accordionPadding = CGFloat(config.accordion.padding)
             workspaces[key]!.autoOrientAccordions = config.accordion.orientation == .auto
             workspaces[key]!.columnWidth = config.scrolling.columnWidth
-            workspaces[key]!.masterSize = config.master.size
-            workspaces[key]!.setMasterSide(config.master.layoutSide)
-            workspaces[key]!.setConfiguredStackMode(config.master.stackMode)
+            let master = config.master(forWorkspace: AppState.shared.numbers.number(of: key),
+                                       on: displays.display(containingSpace: key).map(displays.monitor))
+            workspaces[key]!.masterSize = master.size
+            workspaces[key]!.setMasterSide(master.layoutSide)
+            workspaces[key]!.setConfiguredStackMode(master.stackMode)
             workspaces[key]!.fullscreenWidth = fullscreenWidth(for: key)
             workspaces[key]!.loneWindowWidth = loneWindowWidth(for: key)
             workspaces[key]!.setAlgorithm(workspaces[key]!.chosenAlgorithm ?? settings(for: key).algorithm)
@@ -542,9 +544,11 @@ final class Coordinator {
                                         autoOrientAccordions: config.accordion.orientation == .auto,
                                         algorithm: settings.algorithm)
             workspaces[key]!.columnWidth = config.scrolling.columnWidth
-            workspaces[key]!.masterSize = config.master.size
-            workspaces[key]!.setMasterSide(config.master.layoutSide)
-            workspaces[key]!.setConfiguredStackMode(config.master.stackMode)
+            let master = config.master(forWorkspace: AppState.shared.numbers.number(of: key),
+                                       on: displays.monitor(display))
+            workspaces[key]!.masterSize = master.size
+            workspaces[key]!.setMasterSide(master.layoutSide)
+            workspaces[key]!.setConfiguredStackMode(master.stackMode)
             workspaces[key]!.fullscreenWidth = fullscreenWidth(for: key)
             workspaces[key]!.loneWindowWidth = loneWindowWidth(for: key)
             workspaces[key]!.walls = walls(of: display)
