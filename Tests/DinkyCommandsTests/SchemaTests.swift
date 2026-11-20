@@ -73,6 +73,11 @@ struct SchemaTests {
         fullscreen-width = 0.7
         lone-window-width = 0.6
 
+        [workspace.2.master]
+        size = 0.65
+        side = 'right'
+        stack-layout = 'accordion'
+
         [workspace.2.display.built-in]
         tiling = true
         layout = 'fixed'
@@ -81,6 +86,11 @@ struct SchemaTests {
         expand = 'accordion'
         fullscreen-width = 0.9
         lone-window-width = 0.8
+
+        [workspace.2.display.built-in.master]
+        size = 0.55
+        side = 'center'
+        stack-layout = 'tiles'
 
         [accordion]
         padding = 20
@@ -92,6 +102,7 @@ struct SchemaTests {
         [master]
         size = 0.55
         side = 'right'
+        stack-layout = 'accordion'
 
         [gaps]
         inner.horizontal = 4

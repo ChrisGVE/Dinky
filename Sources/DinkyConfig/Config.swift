@@ -211,6 +211,8 @@ public struct WorkspaceSettings: Equatable {
     public var fullscreenWidth: Double?
     /// A lone window's share from this table or its workspace, before display and top-level resolution.
     public var loneWindowWidth: Double?
+    /// The master layout values written in this table, before workspace and top-level resolution.
+    public var master: MasterPatch?
     /// `[workspace.N.display.<pattern>]`: the settings that replace these on the displays a pattern matches,
     /// in file order.
     public var displays: [WorkspaceOnDisplay] = []
@@ -224,6 +226,7 @@ public struct WorkspaceSettings: Equatable {
     init(_ t: Table, base: WorkspaceSettings, readsDisplays: Bool = true) throws {
         self = base
         displays = []
+        master = nil
         tiling = try t.bool("tiling") ?? tiling
         layout = try t.choice("layout") ?? layout
         let columns: Int? = try t.int("columns")
@@ -239,6 +242,7 @@ public struct WorkspaceSettings: Equatable {
         self.expand = expand ?? self.expand
         fullscreenWidth = try t.windowWidth("fullscreen-width") ?? fullscreenWidth
         loneWindowWidth = try t.windowWidth("lone-window-width") ?? loneWindowWidth
+        master = try t.table("master").map(MasterPatch.init)
         if readsDisplays, let displayTable = try t.table("display") {
             for pattern in displayTable.keys {
                 guard !pattern.isEmpty else { throw ConfigError(path: displayTable.path, "a display pattern can't be empty") }
@@ -286,6 +290,14 @@ extension Config {
             return width
         }
         return loneWindowWidth ?? fullscreenWidth(forWorkspace: number, on: monitor)
+    }
+
+    /// The master layout settings of the workspace with this number, on `monitor`, with each omitted value
+    /// inherited independently from the workspace's or top-level table.
+    public func master(forWorkspace number: Int?, on monitor: Monitor? = nil) -> Master {
+        let workspace = number.flatMap { workspaceLayouts[$0] }?.master?.applying(to: self.master) ?? self.master
+        // The display table's patch, or the workspace's again when no display table matches: applying it twice is harmless.
+        return settings(forWorkspace: number, on: monitor).master?.applying(to: workspace) ?? workspace
     }
 }
 
@@ -346,6 +358,8 @@ public struct Master: Equatable {
     /// The side the master takes; the stack goes on the other, or on both of a centred master. Hyprland calls it
     /// `orientation`.
     public var side = MasterSide.left
+    /// How the stack starts out: tiles or an accordion. `layout tiles` and `layout accordion` still switch it.
+    public var stackLayout = StackLayout.tiles
 
     public init() {}
 
@@ -353,12 +367,47 @@ public struct Master: Equatable {
         size = try t.double("size") ?? size
         guard (0.1...0.9).contains(size) else { throw ConfigError(path: t.path("size"), "must be 0.1 to 0.9") }
         side = try t.choice("side") ?? side
+        stackLayout = try t.choice("stack-layout") ?? stackLayout
         try t.done()
+    }
+}
+
+/// The optional values in a nested `[workspace.N.master]` or `[workspace.N.display.<pattern>.master]` table.
+public struct MasterPatch: Equatable {
+    public var size: Double?
+    public var side: MasterSide?
+    public var stackLayout: StackLayout?
+
+    public init() {
+        size = nil
+        side = nil
+        stackLayout = nil
+    }
+
+    init(_ t: Table) throws {
+        size = try t.double("size")
+        if let size { guard (0.1...0.9).contains(size) else { throw ConfigError(path: t.path("size"), "must be 0.1 to 0.9") } }
+        side = try t.choice("side")
+        stackLayout = try t.choice("stack-layout")
+        try t.done()
+    }
+
+    func applying(to master: Master) -> Master {
+        var master = master
+        master.size = size ?? master.size
+        master.side = side ?? master.side
+        master.stackLayout = stackLayout ?? master.stackLayout
+        return master
     }
 }
 
 public enum MasterSide: String, CaseIterable {
     case left, right, center
+}
+
+/// How the master layout's stack shows its windows.
+public enum StackLayout: String, CaseIterable {
+    case tiles, accordion
 }
 
 /// Below the target, or above it as a ring that never covers content or takes clicks.

@@ -81,6 +81,7 @@ warns about it.
 | `expand` | `'columns'` | What a fixed layout does when every cell is taken. |
 | `fullscreen-width` | top-level `fullscreen-width` | The share of the width a `fullscreen` window takes on this workspace, over the top-level and display values. Lone windows use it unless `lone-window-width` is set. |
 | `lone-window-width` | display or top-level `lone-window-width`, else resolved `fullscreen-width` | The centred width of a lone window on this workspace, over the top-level and display values. |
+| `[master]` | top-level `[master]` | Optional `size`, `side`, and `stack-layout` overrides for this workspace. Each omitted key inherits independently from the top-level table. |
 
 </div>
 
@@ -132,6 +133,9 @@ columns = 2
 
 [workspace.2.display.built-in]   # an accordion on the laptop screen
 layout = 'accordion'
+
+[workspace.2.display.built-in.master]
+size = 0.5
 ```
 
 `rows`, `columns`, and `expand` are only allowed with a fixed layout; with any
@@ -207,8 +211,8 @@ in their order: as an accordion if most of them were in one, else as tiles.
 
 `layout tiles` and `layout accordion` switch the stack between tiles and an
 accordion running top to bottom, whichever window is focused, so
-`layout tiles accordion` toggles it. The stack keeps its mode while it is
-closed.
+`layout tiles accordion` toggles it. The stack starts as `stack-layout` says,
+tiles by default, and keeps its mode while it is closed.
 
 `workspace-layout master` switches the focused window's workspace to the master
 layout on the fly, and `workspace-layout dwindle` switches it back to its tree:
@@ -232,7 +236,10 @@ layout = 'master'
 ## `[master]`
 
 One table for every master workspace, on every display; a workspace can't have
-its own.
+its own unless it is overridden by a nested `[workspace.<number>.master]` table.
+The matching `[workspace.<number>.display.<pattern>.master]` table can override
+those values on one display. At each level, `size`, `side`, and `stack-layout`
+are optional and inherit independently from the next level up.
 
 <div class="wide-table" markdown="1">
 
@@ -240,6 +247,7 @@ its own.
 |---|---|---|
 | `size` | `0.6` | The master's share of the display inside the outer gaps while windows are stacked beside it, from `0.1` to `0.9`. Hyprland calls it `mfact`. It applies to a stack opened later and to `balance-sizes`. |
 | `side` | `'left'` | The side the master takes: `'left'`, `'right'` or `'center'`. The stack goes on the other; with `'center'`, for wide displays, the master takes the middle once two windows are stacked and they split between a stack on each side. Hyprland calls it `orientation`. |
+| `stack-layout` | `'tiles'` | How the stack starts out: `'tiles'` or `'accordion'`. `layout tiles` and `layout accordion` still switch it, and a reload keeps that choice unless this setting changed. |
 
 </div>
 
@@ -697,6 +705,7 @@ column-width = 0.49             # a new column's share of the display; a lone co
 [master]
 size = 0.6                      # the master's share of the display beside the stack; alone it fills it
 side = 'left'                   # left | right | center: the master's side
+stack-layout = 'tiles'          # tiles | accordion: how the stack starts out
 
 [gaps]
 inner = 8                       # or { horizontal = 8, vertical = 8 }

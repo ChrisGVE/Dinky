@@ -13,6 +13,14 @@ struct ConfigTests {
         #expect(String(text[open.upperBound..<close.lowerBound]) == Config.defaultTOML)
     }
 
+    private func expectedMaster(size: Double, side: MasterSide, stackLayout: StackLayout) -> Master {
+        var master = Master()
+        master.size = size
+        master.side = side
+        master.stackLayout = stackLayout
+        return master
+    }
+
     @Test func `Default config loads`() throws {
         let config = try Config.parse(Config.defaultTOML)
         #expect(config == Config.default)
@@ -429,11 +437,57 @@ struct ConfigTests {
         let master = try Config.parse("[master]\nsize = 0.55\nside = 'right'\n").master
         #expect(master.size == 0.55)
         #expect(master.side == .right)
+        #expect(Config().master.stackLayout == .tiles)
+        #expect(try Config.parse("[master]\nstack-layout = 'accordion'\n").master.stackLayout == .accordion)
+        assertError("[master]\nstack-layout = 'scrolling'\n", path: "master.stack-layout", line: 2, contains: "'tiles', 'accordion'")
         #expect(try Config.parse("default-layout = 'master'\n").defaultLayout == .master)
         #expect(try Config.parse("[workspace.2]\nlayout = 'master'\n").workspaceLayouts[2]?.layout == .master)
         assertError("[master]\nsize = 0.95\n", path: "master.size", line: 2, contains: "0.1 to 0.9")
         assertError("[master]\nsize = nan\n", path: "master.size", line: 2, contains: "0.1 to 0.9")
         assertError("[master]\nside = 'top'\n", path: "master.side", line: 2, contains: "'left', 'right', 'center'")
+    }
+
+    @Test func `Master settings per workspace`() throws {
+        let config = try Config.parse("""
+        [master]
+        size = 0.7
+        side = 'right'
+        stack-layout = 'accordion'
+        [workspace.2.master]
+        size = 0.5
+        side = 'center'
+        stack-layout = 'tiles'
+        """)
+        #expect(config.master(forWorkspace: 1) == expectedMaster(size: 0.7, side: .right, stackLayout: .accordion))
+        #expect(config.master(forWorkspace: 2) == expectedMaster(size: 0.5, side: .center, stackLayout: .tiles))
+    }
+
+    @Test func `Master settings per workspace display`() throws {
+        let config = try Config.parse("""
+        [master]
+        size = 0.7
+        side = 'right'
+        stack-layout = 'accordion'
+        [workspace.2.master]
+        size = 0.5
+        side = 'center'
+        [workspace.2.display.built-in.master]
+        size = 0.4
+        stack-layout = 'tiles'
+        """)
+        let laptop = Monitor(name: "Built-in Retina Display", isMain: false, count: 2)
+        let ultrawide = Monitor(name: "DELL U3824DW", isMain: true, count: 2)
+        #expect(config.master(forWorkspace: 2, on: laptop) ==
+                expectedMaster(size: 0.4, side: .center, stackLayout: .tiles))
+        #expect(config.master(forWorkspace: 2, on: ultrawide) ==
+                expectedMaster(size: 0.5, side: .center, stackLayout: .accordion))
+    }
+
+    @Test func `Master settings validate every level`() {
+        assertError("[workspace.2.master]\nsize = 0.95\n", path: "workspace.2.master.size", line: 2,
+                    contains: "0.1 to 0.9")
+        assertError("[workspace.2.display.main.master]\nunknown = true\n", path: "workspace.2.display.main.master.unknown",
+                    line: 2, contains: "unknown key")
     }
 
     @Test func `Syntax error has line`() {
